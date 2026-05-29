@@ -557,7 +557,7 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
                     Available Days
                   </label>
                   <div className="space-y-2">
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                       <label key={day} className="flex items-center">
                         <input
                           type="checkbox"

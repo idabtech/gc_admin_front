@@ -101,6 +101,22 @@ export default function Header() {
               >
                 👤 Profile
               </div>
+              <div
+                onClick={() => {
+                  navigate("/log-history");
+                  setOpenMenu(false);
+                }}
+                style={{
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  color: C.slateL
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = C.transparentHoverLight}
+                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              >
+                🕘 Log history
+              </div>
             </div>
           )}
 
