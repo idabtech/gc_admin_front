@@ -3,7 +3,7 @@ import { useState } from "react";
 import { C } from "../constants/data";
 
 const menuItems = [
-  { name: "Dashboard", path: "/", icon: "📊" },
+  { name: "Dashboard", path: "/dashboard", icon: "📊" },
   { name: "Hospitals", path: "/hospitals", icon: "🏥" },
   // { name: "Teams & Conditions", path: "/teams-conditions", icon: "👥" },
   { name: "Doctors", path: "/doctors", icon: "👨‍⚕️" },
@@ -23,7 +23,7 @@ export default function Sidebar() {
    const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
-    window.location.href = '/login';
+    window.location.href = '/';
    };
   return (
     <aside style={{

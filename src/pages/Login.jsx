@@ -151,7 +151,7 @@ const Login = () => {
         description: 'Welcome back to your admin panel'
       });
       
-      setTimeout(() => navigate('/'), 500);
+      setTimeout(() => navigate('/dashboard'), 500);
     } catch (error) {
       toast.error('Login failed', {
         description: error.response?.data?.message || 'Please check your credentials and try again'
