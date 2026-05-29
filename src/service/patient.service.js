@@ -10,11 +10,24 @@ export const patientService = {
     return response.data;
  },
  updatePatient: async (id, patientData) => {
-    const response = await api.put(`/api/v1/patients/${id}`, patientData);
+    const response = await api.put(`/patients/${id}`, patientData);
     return response.data;
  },
  deletePatient: async (id) => {
-    const response = await api.delete(`/api/v1/patients/${id}`);
+    const response = await api.delete(`/patients/${id}`);
+    return response.data;
+ },
+ sendOtp: async (id, data) => {
+    const response = await api.post(`/patients/${id}/sendOtp`, {
+        email: data.email
+    });
+    return response.data;
+ },
+ verifyOtp: async (id, data) => {
+    const response = await api.post(`/patients/${id}/verifyOtp`, {
+        email: data.email,
+        otp: data.otp
+    });
     return response.data;
  }
 }

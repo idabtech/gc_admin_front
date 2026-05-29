@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { patientService } from "../../service/patient.service";
 import { C } from "../../components/constants/data";
+import OtpPage from "./OtpPage";
+import { authService } from "../../service/auth.service";
 
 const Patients = () => {
   const navigate = useNavigate();
@@ -14,6 +16,9 @@ const Patients = () => {
   const [hospitalFilter, setHospitalFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(9);
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [editLoadingId, setEditLoadingId] = useState(null);
 
   const fetchPatients = async () => {
     try {
@@ -120,8 +125,20 @@ const Patients = () => {
     setCurrentPage(1);
   };
 
-  const handleEditPatient = (patient) => {
-    navigate(`/patients/edit/${patient.id}`);
+  const handleEditPatient = async (patient) => {
+    try {
+    setEditLoadingId(patient.id);
+    await patientService.sendOtp(patient.id, { email: patient.email });
+
+    setSelectedPatient(patient);
+    setIsOtpModalOpen(true);
+    setEditLoadingId(null);
+    // navigate(`/patients/edit/${patient.id}`);
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+    }finally {
+      setEditLoadingId(null);
+    }
   };
 
   const handleDeletePatient = async (patient) => {
@@ -295,6 +312,17 @@ const Patients = () => {
           <p style={{ color: C.slate }}>Loading patients...</p>
         </div>
       </div>
+    );
+  }
+
+  if(isOtpModalOpen) {
+    return (
+      <div
+        className="min-h-screen"
+        style={{ background: C.bg }}
+      >
+        <OtpPage setIsOtpModalOpen={setIsOtpModalOpen} selectedPatient={selectedPatient}/>
+      </div>  
     );
   }
 
@@ -680,7 +708,17 @@ const Patients = () => {
                                 e.target.style.color = '#f59e0b';
                               }}
                             >
-                              Edit
+                             {editLoadingId === patient.id ? (
+                                <>
+                                  <div
+                                    className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
+                                    style={{ borderColor: '#f59e0b', borderTopColor: 'transparent' }}
+                                  />
+                                  Sending...
+                                </>
+                              ) : (
+                                "Edit"
+                              )}
                             </button>
                             <button
                               onClick={() => handleDeletePatient(patient)}
