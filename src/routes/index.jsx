@@ -8,6 +8,7 @@ import Hospitals from "../pages/superadmin/Hospitals";
 import TeamsAndConditions from "../pages/superadmin/TeamsAndConditions";
 import Patients from "../pages/superadmin/Patients";
 import PatientDetail from "../pages/superadmin/PatientDetail";
+import PatientEdit from "../pages/superadmin/PatientEdit";
 import Appointments from "../pages/superadmin/Appointments";
 import Packages from "../pages/superadmin/Packages";
 import EmailTemplates from "../pages/superadmin/EmailTemplates";
@@ -18,23 +19,25 @@ import Profile from "../pages/superadmin/Profile";
 import HospitalApproval from "../pages/superadmin/HospitalApproval";
 import RoleManagement from "../pages/superadmin/RoleManagement";
 import TeamRegister from "../pages/superadmin/TeamRegister";
+import LogHistoryPage from "../pages/superadmin/LogHistoryPage";
 
 const routerData = createBrowserRouter([
     {
-        path: "/login",
+        path: "/",
         element: <Login />
     },
     {
         path: "/",
         element: <SuperAdminLayout />,
         children: [
-            { path: "/", element: <Dashboard /> },
+            { path: "dashboard", element: <Dashboard /> },
             { path: "hospitals", element: <Hospitals /> },
             { path: "hospitals/:id/approve", element: <HospitalApproval /> },
             { path: "teams-conditions", element: <TeamsAndConditions /> },
             { path: "doctors", element: <Doctors /> },
             { path: "patients", element: <Patients /> },
             { path: "patients/:id", element: <PatientDetail /> },
+            { path: "patients/edit/:id", element: <PatientEdit /> },
             { path: "appointments", element: <Appointments /> },
             { path: "packages", element: <Packages /> },
             { path: "email-templates", element: <EmailTemplates /> },
@@ -43,7 +46,8 @@ const routerData = createBrowserRouter([
             { path: "team-register", element: <TeamRegister /> },
             { path: "reports", element: <Reports /> },
             { path: "settings", element: <Settings /> },
-            { path: "profile", element: <Profile /> }
+            { path: "profile", element: <Profile /> },
+            { path: "log-history", element: <LogHistoryPage /> }
         ]
     },
     {

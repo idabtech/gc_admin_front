@@ -404,7 +404,41 @@ export default function Dashboard() {
                 }}>
                   {activity.action}
                 </p>
-              </div>
+                <p
+  style={{
+    fontSize: "13px",
+    color: C.slate,
+    margin: "4px 0 0 0"
+  }}
+>
+  {(() => {
+    try {
+      const details =
+        typeof activity.details === "string"
+          ? JSON.parse(activity.details)
+          : activity.details;
+      // USER_LOGIN log
+      if (details.email || details.name) {
+        return (details.email) ? `Email: ${details.email}` : `Name: ${details.name}`;
+      }
+
+      // POST /login log
+      if (details.body?.email) {
+        return `Email: ${details.body.email}`;
+      }
+
+      // Generic request log
+      if (details.method && details.path) {
+        return `${details.method} ${details.path}`;
+      }
+
+      return "Activity recorded";
+    } catch {
+      return "";
+    }
+  })()}
+</p>
+                </div>
               <span style={{
                 fontSize: "12px",
                 color: C.slateL,

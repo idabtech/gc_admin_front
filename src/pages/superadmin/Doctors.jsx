@@ -288,7 +288,7 @@ const Doctors = () => {
               <div>
                 <p style={{ color: C.slate }} className="text-xs mb-1">Experience</p>
                 <p className="font-semibold" style={{ color: C.blue }}>
-                  {doctor.experience_years ? `${doctor.experience_years} yrs` : 'N/A'}
+                  {doctor.experience_yrs ? `${doctor.experience_yrs} yrs` : 'N/A'}
                 </p>
               </div>
             </div>

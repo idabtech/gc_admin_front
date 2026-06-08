@@ -15,6 +15,13 @@ export const authService = {
         return response.data;
     },
 
+    async sendOtp(data) {
+        const response = await api.post(`/auth/sendOtp`, {
+            email: data.email
+        });
+        return response.data;
+    },
+
     async verifyOtp(data) {
         const response = await api.post(`/auth/verifyOtp`, {
             email: data.email,
@@ -99,6 +106,11 @@ export const authService = {
         const response = await api.get(`/auth/me`);
         return response.data;
     },
+
+    async getUserLoginHistory(page = 1, limit = 10) {
+        const response = await api.get(`/analytics/login-history?page=${page}&limit=${limit}`);
+        return response.data;
+    }
 
 };
 
