@@ -308,7 +308,7 @@ const Settings = () => {
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast.error('Passwords do not match', {
         description: 'Please ensure both passwords are the same'
@@ -356,7 +356,7 @@ const Settings = () => {
       await authService.setup2FA();
       setIs2FASetup(true);
       toast.success('2FA setup initiated', {
-        description: 'Please check your phone for the verification code'
+        description: 'Please check your mail for the verification code'
       });
     } catch (error) {
       console.error('Error setting up 2FA:', error);
@@ -512,9 +512,9 @@ const Settings = () => {
             <Lock style={styles.cardHeaderIcon} />
             <h2 style={styles.cardHeaderTitle}>Security & Access</h2>
           </div>
-          
+
           <div style={styles.securityGrid}>
-            <button 
+            <button
               onClick={() => setShowChangePasswordModal(true)}
               style={styles.securityBtn}
               onMouseEnter={(e) => {
@@ -531,16 +531,16 @@ const Settings = () => {
               <Lock style={styles.securityBtnIcon} />
               Change Password
             </button>
-            
-            <div 
+
+            <div
               style={{
                 ...styles.toggleContainer,
                 ...(is2FAEnabled && { borderColor: '#10b981', background: '#f0fdf4' })
               }}
               onMouseEnter={(e) => {
                 e.target.style.borderColor = is2FAEnabled ? '#10b981' : '#0ea5e9';
-                e.target.style.boxShadow = is2FAEnabled 
-                  ? '0 4px 12px rgba(16, 185, 129, 0.15)' 
+                e.target.style.boxShadow = is2FAEnabled
+                  ? '0 4px 12px rgba(16, 185, 129, 0.15)'
                   : '0 4px 12px rgba(14, 165, 233, 0.15)';
                 e.target.style.transform = 'translateY(-1px)';
               }}
@@ -559,7 +559,7 @@ const Settings = () => {
                   </p>
                 </div>
               </div>
-              <div 
+              <div
                 onClick={handle2FAToggle}
                 style={{
                   ...styles.toggleSwitch,
@@ -573,7 +573,7 @@ const Settings = () => {
                   e.target.style.transform = 'scale(1)';
                 }}
               >
-                <div 
+                <div
                   style={{
                     ...styles.toggleSlider,
                     ...(is2FAEnabled && styles.toggleSliderActive)
@@ -581,8 +581,8 @@ const Settings = () => {
                 />
               </div>
             </div>
-            
-            <button 
+
+            <button
               onClick={handleLogout}
               style={styles.securityBtn}
               onMouseEnter={(e) => {
@@ -624,7 +624,7 @@ const Settings = () => {
                 <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handlePasswordSubmit}>
               <div style={{ ...styles.formGroup, marginBottom: '1rem' }}>
                 <label style={styles.formLabel}>Current Password</label>
@@ -765,10 +765,10 @@ const Settings = () => {
             {!is2FAEnabled && !is2FASetup && (
               <div>
                 <p style={{ marginBottom: '1.5rem', color: '#6b7280', lineHeight: '1.6' }}>
-                  Enable two-factor authentication to add an extra layer of security to your account. 
+                  Enable two-factor authentication to add an extra layer of security to your account.
                   You'll receive a verification code on your phone whenever you sign in.
                 </p>
-                
+
                 <div style={{ ...styles.formGroup, marginBottom: '1.5rem' }}>
                   <label style={styles.formLabel}>Email</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -815,7 +815,7 @@ const Settings = () => {
                 <p style={{ marginBottom: '1.5rem', color: '#6b7280', lineHeight: '1.6' }}>
                   We've sent a verification code to your email. Please enter the code below to complete the setup.
                 </p>
-                
+
                 <div style={{ ...styles.formGroup, marginBottom: '1.5rem' }}>
                   <label style={styles.formLabel}>Verification Code</label>
                   <input
