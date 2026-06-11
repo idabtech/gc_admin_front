@@ -40,31 +40,29 @@ const EmailTemplates = () => {
     }
   };
 
-  const searchAndFilterTemplates = () => {
-    let filtered = templates;
-
-    if (searchQuery) {
-      filtered = filtered.filter(template =>
-        template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        template.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        template.type.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    if (typeFilter !== "all") {
-      filtered = filtered.filter(template => template.type === typeFilter);
-    }
-
-    setTemplates(filtered);
-  };
-
   useEffect(() => {
     fetchTemplates();
   }, []);
 
-  useEffect(() => {
-    searchAndFilterTemplates();
-  }, [searchQuery, typeFilter]);
+  // Compute available types dynamically to include custom types
+  const availableTypes = Array.from(
+    new Set([
+      ...templateTypes,
+      ...templates.map(t => t.type).filter(Boolean)
+    ])
+  );
+
+  // Filter templates on-the-fly to avoid mutating the original templates state
+  const filteredTemplates = templates.filter(template => {
+    const matchesSearch = !searchQuery ||
+      template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      template.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      template.type.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesType = typeFilter === "all" || template.type === typeFilter;
+
+    return matchesSearch && matchesType;
+  });
 
   const openTemplateModal = (template, mode = 'view') => {
     setSelectedTemplate(template);
@@ -85,9 +83,9 @@ const EmailTemplates = () => {
   const stats = {
     total: templates.length,
     active: templates.filter(t => t.status === 'active').length,
-    types: templateTypes.length,
+    types: availableTypes.length,
     recentUpdates: templates.filter(t => {
-      const updateDate = new Date(t.updatedAt);
+      const updateDate = new Date(t.updated_at || t.updatedAt);
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       return updateDate > weekAgo;
@@ -154,7 +152,7 @@ const EmailTemplates = () => {
                 <p style={{ color: C.slate }} className="text-sm font-medium mb-1">
                   {stat.label}
                 </p>
-                <p 
+                <p
                   className="text-3xl font-bold"
                   style={{ color: stat.color }}
                 >
@@ -163,7 +161,7 @@ const EmailTemplates = () => {
               </div>
               <span className="text-2xl">{stat.icon}</span>
             </div>
-            <div 
+            <div
               className="mt-4 h-1 rounded-full opacity-20"
               style={{ background: stat.color }}
             />
@@ -194,7 +192,7 @@ const EmailTemplates = () => {
             }}
           >
             <option value="all">All Types</option>
-            {templateTypes.map(type => (
+            {availableTypes.map(type => (
               <option key={type} value={type}>{type}</option>
             ))}
           </select>
@@ -203,7 +201,7 @@ const EmailTemplates = () => {
 
       {/* TEMPLATES GRID */}
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {templates.map((template) => (
+        {filteredTemplates.map((template) => (
           <div
             key={template.id}
             onClick={() => openTemplateModal(template, 'view')}
@@ -256,7 +254,7 @@ const EmailTemplates = () => {
             {/* Dates */}
             <div className="mb-4">
               <p style={{ color: C.slate }} className="text-xs mb-1">Last Updated</p>
-              <p style={{ color: C.black }} className="text-sm">{template.updatedAt}</p>
+              <p style={{ color: C.black }} className="text-sm">{new Date(template.updated_at).toLocaleDateString()}</p>
             </div>
 
             {/* Action Buttons */}
@@ -289,7 +287,7 @@ const EmailTemplates = () => {
       </div>
 
       {/* Empty State */}
-      {templates.length === 0 && !loading && (
+      {filteredTemplates.length === 0 && !loading && (
         <div
           className="text-center py-20 rounded-xl border"
           style={{ background: C.card, borderColor: C.border }}
@@ -312,7 +310,7 @@ const EmailTemplates = () => {
         template={selectedTemplate}
         onActionComplete={handleActionComplete}
         mode={modalMode}
-        templateTypes={templateTypes}
+        templateTypes={availableTypes}
         fetchTemplates={fetchTemplates}
       />
     </div>
