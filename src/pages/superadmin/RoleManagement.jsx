@@ -16,7 +16,7 @@ const RoleManagement = () => {
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -27,7 +27,7 @@ const RoleManagement = () => {
 
   // Fetch all roles
   const fetchRoles = async () => {
-    
+
     try {
       const data = await roleService.getRoles();
       setRoles(data.data || []);
@@ -40,7 +40,7 @@ const RoleManagement = () => {
 
   // Fetch all permissions
   const fetchPermissions = async () => {
-    
+
     try {
       const data = await permissionService.getPermissions();
       setPermissions(data.data || []);
@@ -51,7 +51,7 @@ const RoleManagement = () => {
 
   // Fetch permission categories
   const fetchCategories = async () => {
-    
+
     try {
       const data = await permissionService.getPermissionCategories();
       setCategories(data.data || []);
@@ -62,7 +62,7 @@ const RoleManagement = () => {
 
   // Fetch permissions for a specific role
   const fetchRolePermissions = async (roleId) => {
-    
+
     try {
       const data = await roleService.getRolePermissions(roleId);
       setRolePermissions(data.data || []);
@@ -74,7 +74,7 @@ const RoleManagement = () => {
   // Create new role
   const handleCreateRole = async (e) => {
     e.preventDefault();
-    
+
     try {
       await roleService.createRole(formData);
       toast.success('Role created successfully');
@@ -89,7 +89,7 @@ const RoleManagement = () => {
 
   // Update role permissions
   const handleUpdatePermissions = async (permissionIds) => {
-    
+
     try {
       await roleService.updateRolePermissions(selectedRole.id, permissionIds);
       toast.success('Permissions updated successfully');
@@ -103,7 +103,7 @@ const RoleManagement = () => {
 
   // Delete role
   const handleDeleteRole = async (roleId) => {
-    
+
     if (window.confirm('Are you sure you want to delete this role?')) {
       try {
         await roleService.deleteRole(roleId);
@@ -125,14 +125,15 @@ const RoleManagement = () => {
 
   useEffect(() => {
     // if (isAuthenticated) {
-      fetchRoles();
-      fetchPermissions();
-      fetchCategories();
+    fetchRoles();
+    fetchPermissions();
+    fetchCategories();
     // }
   }, []);
 
   // Check if user is superadmin
-  if (!user || !user.roles || !user.roles.some(role => role.name === 'superadmin')) {
+  // console.log('user.roles.some(role => role.name === superadmin)', user.roles[0].name === 'superadmin');
+  if (!user || !user.roles || !user.roles[0].name === 'superadmin') {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-lg text-red-500">Access Denied: Superadmin only</div>
@@ -155,26 +156,28 @@ const RoleManagement = () => {
         <button
           onClick={() => setShowCreateModal(true)}
           // className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
-          style={{ display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.85rem 1.5rem',
-          background: 'linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)',
-          color: 'white',
-          border: 'none',
-          borderRadius: '10px',
-          fontWeight: '600',
-          fontSize: '0.9rem',
-          cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          boxShadow: '0 8px 20px rgba(14, 165, 233, 0.3)'}}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.85rem 1.5rem',
+            background: 'linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '10px',
+            fontWeight: '600',
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 8px 20px rgba(14, 165, 233, 0.3)'
+          }}
         >
           <Plus size={18} />
           Create Role
         </button>
       </div>
 
-      
+
       {/* STATS CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
         {[
@@ -195,7 +198,7 @@ const RoleManagement = () => {
                 <p style={{ color: C.slate }} className="text-sm font-medium mb-1">
                   {stat.label}
                 </p>
-                <p 
+                <p
                   className="text-3xl font-bold"
                   style={{ color: stat.color }}
                 >
@@ -204,7 +207,7 @@ const RoleManagement = () => {
               </div>
               <span className="text-2xl">{stat.icon}</span>
             </div>
-            <div 
+            <div
               className="mt-4 h-1 rounded-full opacity-20"
               style={{ background: stat.color }}
             />
@@ -268,9 +271,8 @@ const RoleManagement = () => {
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Permission Categories</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {categories.map((category) => (
-            <div key={category.id} className="p-4 rounded-lg border" style={{ borderColor: `${C.border}` }}>
-              {console.log('category', category)}
+          {categories.map((category, key) => (
+            <div key={key} className="p-4 rounded-lg border" style={{ borderColor: `${C.border}` }}>
               <div className="font-medium mb-2">{category}</div>
               {/* <div className="text-sm opacity-70">{category.description || '-'}</div> */}
             </div>
@@ -352,7 +354,7 @@ const RoleManagement = () => {
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="p-6 rounded-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto" style={{ backgroundColor: C.bg }}>
             <h2 className="text-xl font-bold mb-4">Manage Permissions - {selectedRole.name}</h2>
-            
+
             <div className="mb-6">
               <h3 className="font-medium mb-3">Available Permissions</h3>
               <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
