@@ -224,7 +224,7 @@
 //     setApproving(true);
 //     try {
 //       await hospitalService.approveHospital(hospital.id);
-      
+
 //       setHospital(prev => ({
 //         ...prev,
 //         isApproved: true,
@@ -302,7 +302,7 @@
 //           <User style={styles.cardHeaderIcon} />
 //           <h2 style={styles.cardHeaderTitle}>Hospital Information</h2>
 //         </div>
-        
+
 //         <div style={styles.infoGrid}>
 //           {/* Name */}
 //           <div style={styles.infoItem}>
@@ -397,7 +397,7 @@
 //             <X size={16} />
 //             Reject
 //           </button>
-          
+
 //           {!hospital.isApproved && (
 //             <button
 //               onClick={handleApprove}
@@ -448,6 +448,7 @@ import { C } from '../../components/constants/data';
 
 const HospitalApprovalModern = () => {
   const { id } = useParams();
+  console.log('hospital id', id);
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const [hospital, setHospital] = useState(null);
@@ -462,32 +463,50 @@ const HospitalApprovalModern = () => {
   const fetchHospitalDetails = async () => {
     try {
       setLoading(true);
-      const mockHospital = {
-        id: id,
-        name: 'Hadassah Holland Medical Center',
-        email: 'xejoja7486@gcervera.com',
-        phone: '+91-96584563256',
-        address: 'A.K. Road, Surat',
-        city: 'Surat',
-        state: 'GUJARAT',
-        country: 'India',
-        registrationDate: '2026-01-15',
-        isApproved: false,
-        totalBeds: 20,
-        availableBeds: 20,
-        doctorCount: 8,
-        rating: 3.0,
-        specialties: ['Orthopedics', 'Neurology', 'Oncology', 'Emergency Medicine', 'General Surgery', 'Urology'],
-        documents: {
-          license: 'medical-license.pdf',
-          insurance: 'insurance-cert.pdf',
-          accreditation: 'accreditation.pdf'
-        },
-        website: 'https://www.hodut.co.uk',
-        founded_year: 2023,
-        hospitalType: 'Teaching Hospital'
-      };
-      setHospital(mockHospital);
+      const data = await hospitalService.getHospitalById(id);
+      console.log('Fetched hospital data:', data);
+      if (data && data.hospital) {
+        const h = data.hospital;
+        let specialties = [];
+        if (h.specialties) {
+          try {
+            specialties = typeof h.specialties === 'string'
+              ? JSON.parse(h.specialties)
+              : h.specialties;
+          } catch (e) {
+            console.error('Error parsing specialties:', e);
+            specialties = [];
+          }
+        }
+        
+        setHospital({
+          id: h.id,
+          name: h.name || '',
+          email: h.email || '',
+          phone: h.phone || '',
+          address: h.address || '',
+          city: h.city || '',
+          state: h.state || '',
+          country: h.country || 'India',
+          registrationDate: h.created_at || '',
+          isApproved: h.is_approved === 1 || h.is_approved === true || h.is_approved === '1',
+          totalBeds: h.total_beds || 0,
+          availableBeds: h.available_beds || 0,
+          doctorCount: h.doctor_count !== undefined ? h.doctor_count : (data.doctors ? data.doctors.length : 0),
+          rating: h.rating ? parseFloat(h.rating) : 0,
+          specialties: Array.isArray(specialties) ? specialties : [specialties].filter(Boolean),
+          website: h.website || '',
+          founded_year: h.founded_year || 'N/A',
+          hospitalType: h.hospital_type || 'General',
+          documents: {
+            license: 'medical-license.pdf',
+            insurance: 'insurance-cert.pdf',
+            accreditation: 'accreditation.pdf'
+          }
+        });
+      } else {
+        toast.error('Hospital not found');
+      }
     } catch (error) {
       console.error('Error fetching hospital details:', error);
       toast.error('Failed to load hospital details');
@@ -581,7 +600,7 @@ const HospitalApprovalModern = () => {
   }
 
   return (
-    <div style={{ 
+    <div style={{
       background: C.bg,
       minHeight: '100vh',
       color: C.black,

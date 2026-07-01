@@ -15,8 +15,8 @@ export const hospitalService = {
         return response.data;
     },
 
-    getHospitalById: async () => {
-        const response = await api.get(`/hospitals/my`);
+    getHospitalById: async (id) => {
+        const response = await api.get(`/hospitals/${id}`);
         return response.data;
     },
     createHospital: async (hospital) => {
