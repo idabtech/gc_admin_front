@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { doctorService } from "../../service/doctor.service";
 import { C } from "../../components/constants/data";
 import DoctorModal from "../../components/superadmin/DoctorModal";
+import { MoreVertical } from "lucide-react";
 
 const Doctors = () => {
   const [doctors, setDoctors] = useState([]);
@@ -9,9 +10,11 @@ const Doctors = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [specializationFilter, setSpecializationFilter] = useState("all");
-  const [approvalFilter, setApprovalFilter] = useState("all");
+  const approvalFilter = "all";
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [modalMode, setModalMode] = useState('view');
 
   const fetchDoctors = async () => {
     try {
@@ -30,7 +33,7 @@ const Doctors = () => {
       if (statusFilter !== "all") filters.status = statusFilter;
       if (specializationFilter !== "all") filters.specialization = specializationFilter;
       if (approvalFilter !== "all") filters.approval_status = approvalFilter;
-      
+
       const data = await doctorService.searchDoctors(searchQuery, filters);
       setDoctors(data.doctors || []);
     } catch (err) {
@@ -39,29 +42,71 @@ const Doctors = () => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDoctors();
   }, []);
 
   useEffect(() => {
     if (searchQuery || statusFilter !== "all" || specializationFilter !== "all" || approvalFilter !== "all") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       searchAndFilterDoctors();
     } else {
       fetchDoctors();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, statusFilter, specializationFilter, approvalFilter]);
 
-  const openDoctorModal = (doctor) => {
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveDropdown(null);
+    };
+    document.addEventListener("click", handleOutsideClick);
+    return () => {
+      document.removeEventListener("click", handleOutsideClick);
+    };
+  }, []);
+
+  const openDoctorModal = (doctor, initialMode = 'view') => {
     setSelectedDoctor(doctor);
+    setModalMode(initialMode);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setSelectedDoctor(null);
+    setModalMode('view');
     setIsModalOpen(false);
   };
 
   const handleActionComplete = () => {
     fetchDoctors();
+  };
+
+  const toggleDropdown = (e, id) => {
+    e.stopPropagation();
+    setActiveDropdown(activeDropdown === id ? null : id);
+  };
+
+  const handleDelete = async (doctor) => {
+    if (window.confirm(`Are you sure you want to delete Dr. ${doctor.name}? This action cannot be undone.`)) {
+      try {
+        await doctorService.deleteDoctorProfile(doctor.id);
+        fetchDoctors();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const handleUnsuspend = async (doctor) => {
+    if (window.confirm(`Are you sure you want to unsuspend Dr. ${doctor.name}?`)) {
+      try {
+        await doctorService.unsuspendDoctor(doctor.id);
+        fetchDoctors();
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
   const getStatusColor = (doctor) => {
@@ -96,7 +141,6 @@ const Doctors = () => {
 
   // Calculate statistics
   const activeDoctors = doctors.filter(d => d.is_active && !d.is_suspended).length;
-  const pendingDoctors = doctors.filter(d => d.approval_status === 'pending').length;
   const suspendedDoctors = doctors.filter(d => d.is_suspended).length;
   const specializations = [...new Set(doctors.map(d => d.specialization).filter(Boolean))];
 
@@ -105,6 +149,80 @@ const Doctors = () => {
       className="min-h-screen"
       style={{ background: C.bg, color: C.black }}
     >
+      <style>{`
+        .dropdown-menu {
+          position: relative;
+        }
+
+        .dropdown-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          color: #94a3b8;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+          margin-left: 10px;
+          background: transparent;
+          border: none;
+        }
+
+        .dropdown-btn:hover {
+          background: rgba(14, 165, 233, 0.15);
+          border-color: rgba(14, 165, 233, 0.3);
+          color: #0ea5e9;
+        }
+
+        .dropdown-content {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          margin-top: 0.5rem;
+          background: white ;
+          border: 1px solid rgba(148, 163, 184, 0.2);
+          color: black;
+          border-radius: 10px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+          z-index: 9999999999;
+          min-width: 180px;
+          backdrop-filter: blur(10px);
+          overflow: hidden;
+        }
+
+        .dropdown-item {
+          padding: 0.75rem 1rem;
+          color: black;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-size: 0.85rem;
+          border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          width: 100%;
+          text-align: left;
+          background: transparent;
+          border-left: none;
+          border-right: none;
+          border-top: none;
+        }
+
+        .dropdown-item:last-child {
+          border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+          background: rgba(14, 165, 233, 0.15);
+          color: #0ea5e9;
+        }
+
+        .dropdown-item.danger:hover {
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+        }
+      `}</style>
       {/* HEADER */}
       <div className="flex justify-between items-center mb-10">
         <div>
@@ -164,7 +282,7 @@ const Doctors = () => {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-3 rounded-lg border text-black"
-            style={{ 
+            style={{
               borderColor: C.border,
               backgroundColor: C.white,
               color: C.black
@@ -197,7 +315,7 @@ const Doctors = () => {
             value={specializationFilter}
             onChange={(e) => setSpecializationFilter(e.target.value)}
             className="px-4 py-3 rounded-lg border text-black"
-            style={{ 
+            style={{
               borderColor: C.border,
               backgroundColor: C.white,
               color: C.black
@@ -222,29 +340,101 @@ const Doctors = () => {
           >
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold"
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0"
                   style={{ background: C.teal, color: C.white }}
                 >
                   {doctor.name?.charAt(0)?.toUpperCase() || 'D'}
                 </div>
-                <div>
-                  <h2 className="text-xl font-semibold" style={{ color: C.black }}>{doctor.name}</h2>
-                  <p style={{ color: C.slate }} className="text-sm">{doctor.email}</p>
+                <div className="min-w-0">
+                  <h2 className="text-xl font-semibold truncate" style={{ color: C.black }} title={doctor.name}>{doctor.name}</h2>
+                  <p style={{ color: C.slate }} className="text-sm truncate" title={doctor.email}>{doctor.email}</p>
                 </div>
               </div>
-              
-              {/* Status Badge */}
-              <span
-                className="px-3 py-1 rounded text-xs font-semibold"
-                style={{
-                  background: getStatusColor(doctor),
-                  color: C.white,
-                }}
-              >
-                {getStatusText(doctor)}
-              </span>
+
+              {/* Status Badge & Three Dot Menu */}
+              <div className="flex items-center gap-2 relative">
+                <span
+                  className="px-3 py-1 rounded text-xs font-semibold whitespace-nowrap"
+                  style={{
+                    background: getStatusColor(doctor),
+                    color: C.white,
+                  }}
+                >
+                  {getStatusText(doctor)}
+                </span>
+
+                <div className="dropdown-menu">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDropdown(e, doctor.id);
+                    }}
+                    className="dropdown-btn"
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+
+                  {activeDropdown === doctor.id && (
+                    <div className="dropdown-content" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDropdown(null);
+                          openDoctorModal(doctor, 'view');
+                        }}
+                        className="dropdown-item"
+                      >
+                        👁️ View Details
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDropdown(null);
+                          openDoctorModal(doctor, 'edit');
+                        }}
+                        className="dropdown-item"
+                      >
+                        ✏️ Edit Profile
+                      </button>
+                      {doctor.is_suspended ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDropdown(null);
+                            handleUnsuspend(doctor);
+                          }}
+                          className="dropdown-item"
+                        >
+                          ↩️ Unsuspend
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDropdown(null);
+                            openDoctorModal(doctor, 'suspend');
+                          }}
+                          className="dropdown-item"
+                        >
+                          ⚠️ Suspend
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDropdown(null);
+                          handleDelete(doctor);
+                        }}
+                        className="dropdown-item danger"
+                      >
+                        🗑️ Delete Doctor
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Specialization */}
@@ -327,44 +517,32 @@ const Doctors = () => {
             )}
 
             {/* Action Buttons */}
-            <div className="mt-4 pt-4 border-t" style={{ borderColor: C.border }}>
-              <div className="flex gap-2">
-                {doctor.approval_status === 'pending' && (
-                  <>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDoctorModal(doctor);
-                      }}
-                      className="flex-1 py-2 px-3 rounded text-xs font-semibold transition cursor-pointer"
-                      style={{ background: C.green, color: C.white }}
-                    >
-                      ✓ Approve
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDoctorModal(doctor);
-                      }}
-                      className="flex-1 py-2 px-3 rounded text-xs font-semibold transition cursor-pointer"
-                      style={{ background: C.red, color: C.white }}
-                    >
-                      ✗ Reject
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openDoctorModal(doctor);
-                  }}
-                  className="flex-1 py-2 px-3 rounded text-xs font-semibold transition"
-                  style={{ background: C.teal, color: C.white }}
-                >
-                  Manage
-                </button>
+            {doctor.approval_status === 'pending' && (
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: C.border }}>
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openDoctorModal(doctor, 'view');
+                    }}
+                    className="flex-1 py-2 px-3 rounded text-xs font-semibold transition cursor-pointer"
+                    style={{ background: C.green, color: C.white }}
+                  >
+                    ✓ Approve
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openDoctorModal(doctor, 'reject');
+                    }}
+                    className="flex-1 py-2 px-3 rounded text-xs font-semibold transition cursor-pointer"
+                    style={{ background: C.red, color: C.white }}
+                  >
+                    ✗ Reject
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ))}
       </div>
@@ -393,6 +571,7 @@ const Doctors = () => {
         onClose={closeModal}
         doctor={selectedDoctor}
         onActionComplete={handleActionComplete}
+        initialMode={modalMode}
       />
     </div>
   );

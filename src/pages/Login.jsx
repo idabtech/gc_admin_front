@@ -10,7 +10,7 @@ const Login = () => {
   const [authFlow, setAuthFlow] = useState('login'); // 'login', '2fa-verify', '2fa-setup', '2fa-setup-verify'
   const [pendingUser, setPendingUser] = useState(null);
   const [backupCodes, setBackupCodes] = useState([]);
-  
+
   // Form states
   const [formData, setFormData] = useState({
     email: '',
@@ -41,9 +41,9 @@ const Login = () => {
   // Validate individual field
   const validateField = (name, value) => {
     let error = '';
-    
+
     if (!value.trim()) {
-      switch(name) {
+      switch (name) {
         case 'email':
         case 'password':
         case 'otp':
@@ -66,7 +66,7 @@ const Login = () => {
     } else if (name === 'disablePassword' && value.length < 4) {
       error = 'Password must be at least 4 characters';
     }
-    
+
     return error;
   };
 
@@ -76,7 +76,7 @@ const Login = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Real-time validation for touched fields
     if (touched[name]) {
       const error = validateField(name, value);
@@ -93,7 +93,7 @@ const Login = () => {
       ...prev,
       [name]: true
     }));
-    
+
     const error = validateField(name, value);
     setErrors(prev => ({
       ...prev,
@@ -103,7 +103,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (authFlow === 'login') {
       await handleLogin();
     } else if (authFlow === '2fa-verify') {
@@ -112,6 +112,36 @@ const Login = () => {
       await handle2FASetup();
     } else if (authFlow === '2fa-setup-verify') {
       await handle2FASetupVerify();
+    } else if (authFlow === 'forgot-password') {
+      await handleForgotPassword();
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const emailError = validateField('email', formData.email);
+
+    if (emailError) {
+      setErrors({ email: emailError });
+      setTouched({ email: true });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await authService.sendResetOtp({ email: formData.email });
+      toast.success('Password reset link sent!', {
+        description: 'Please check your email for the reset link'
+      });
+      resetForm();
+      setAuthFlow('login');
+    } catch (error) {
+      toast.error('Failed to send reset link', {
+        description: error.response?.data?.error || 'Failed to send password reset email'
+      });
+      console.error('Forgot password error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -120,18 +150,18 @@ const Login = () => {
     // Validate all fields
     const emailError = validateField('email', formData.email);
     const passwordError = validateField('password', formData.password);
-    
+
     if (emailError || passwordError) {
       setErrors({ email: emailError, password: passwordError });
       setTouched({ email: true, password: true });
       return;
     }
-    const payload = {email: formData.email, password: formData.password}
+    const payload = { email: formData.email, password: formData.password }
     setLoading(true);
 
     try {
       const response = await authService.login(payload);
-      
+
       // Check if 2FA is required
       if (response.requiresTwoFactor) {
         setPendingUser({ email: response.email || formData.email });
@@ -142,15 +172,15 @@ const Login = () => {
         });
         return;
       }
-      
+
       // Store token and user data in localStorage for successful login
       localStorage.setItem('token', response.accessToken);
       localStorage.setItem('userData', JSON.stringify(response.user));
-      
+
       toast.success('Login successful! Redirecting...', {
         description: 'Welcome back to your admin panel'
       });
-      
+
       setTimeout(() => navigate('/dashboard'), 500);
     } catch (error) {
       toast.error('Login failed', {
@@ -165,7 +195,7 @@ const Login = () => {
   // Handle 2FA verification during login
   const handle2FAVerify = async () => {
     const otpError = validateField('otp', formData.otp);
-    
+
     if (otpError) {
       setErrors({ otp: otpError });
       setTouched({ otp: true });
@@ -176,15 +206,15 @@ const Login = () => {
 
     try {
       const response = await authService.verify2FA(pendingUser.email, formData.otp);
-      
+
       // Store token and user data from nested data structure
       localStorage.setItem('token', response.data.accessToken);
       localStorage.setItem('userData', JSON.stringify(response.data.user));
-      
+
       toast.success('Login successful! Redirecting...', {
         description: '2FA verification complete'
       });
-      
+
       setTimeout(() => navigate('/'), 500);
     } catch (error) {
       toast.error('2FA verification failed', {
@@ -199,7 +229,7 @@ const Login = () => {
   // Handle 2FA setup
   const handle2FASetup = async () => {
     const phoneError = validateField('phone', formData.phone);
-    
+
     if (phoneError) {
       setErrors({ phone: phoneError });
       setTouched({ phone: true });
@@ -210,7 +240,7 @@ const Login = () => {
 
     try {
       const response = await authService.setup2FA(formData.phone);
-      
+
       setAuthFlow('2fa-setup-verify');
       setFormData(prev => ({ ...prev, setupOtp: '' }));
       toast.success('2FA setup initiated', {
@@ -229,7 +259,7 @@ const Login = () => {
   // Handle 2FA setup verification
   const handle2FASetupVerify = async () => {
     const setupOtpError = validateField('setupOtp', formData.setupOtp);
-    
+
     if (setupOtpError) {
       setErrors({ setupOtp: setupOtpError });
       setTouched({ setupOtp: true });
@@ -240,11 +270,11 @@ const Login = () => {
 
     try {
       const response = await authService.verify2FASetup(formData.setupOtp);
-      
+
       toast.success('2FA enabled successfully!', {
         description: 'Your account is now protected with two-factor authentication'
       });
-      
+
       // Reset to login flow
       resetForm();
       setAuthFlow('login');
@@ -280,9 +310,11 @@ const Login = () => {
   };
 
   const isFormValid = () => {
-    switch(authFlow) {
+    switch (authFlow) {
       case 'login':
         return formData.email && formData.password && !errors.email && !errors.password;
+      case 'forgot-password':
+        return formData.email && !errors.email;
       case '2fa-verify':
         return formData.otp && formData.otp.length === 6 && !errors.otp;
       case '2fa-setup':
@@ -295,9 +327,11 @@ const Login = () => {
   };
 
   const getFormTitle = () => {
-    switch(authFlow) {
+    switch (authFlow) {
       case 'login':
         return 'Welcome Back';
+      case 'forgot-password':
+        return 'Forgot Password';
       case '2fa-verify':
         return 'Two-Factor Authentication';
       case '2fa-setup':
@@ -310,9 +344,11 @@ const Login = () => {
   };
 
   const getFormSubtitle = () => {
-    switch(authFlow) {
+    switch (authFlow) {
       case 'login':
         return 'Sign in to your admin account';
+      case 'forgot-password':
+        return 'Enter your email to receive a password reset link';
       case '2fa-verify':
         return 'Enter the verification code sent to your device';
       case '2fa-setup':
@@ -329,12 +365,12 @@ const Login = () => {
       {/* Animated background elements */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-      
+
       <div className="max-w-md w-full relative z-10">
         {/* Logo/Header section */}
         <div className="text-center mb-8 animate-fadeInDown">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg" style={{background: `linear-gradient(135deg,${C.teal},${C.tealL})`}}>
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg" style={{ background: `linear-gradient(135deg,${C.teal},${C.tealL})` }}>
               {authFlow === '2fa-verify' || authFlow === '2fa-setup' || authFlow === '2fa-setup-verify' ? (
                 <Shield className="w-6 h-6 text-white" />
               ) : (
@@ -349,8 +385,8 @@ const Login = () => {
         {/* Form Card */}
         <div className="bg-slate-200 bg-opacity-50 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-slate-700 hover:border-slate-600 transition-colors duration-300">
           <form className="space-y-5" onSubmit={handleSubmit}>
-            {/* Login Form */}
-            {authFlow === 'login' && (
+            {/* Login / Forgot Password Form */}
+            {(authFlow === 'login' || authFlow === 'forgot-password') && (
               <>
                 {/* Email Field */}
                 <div className="space-y-2 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
@@ -364,11 +400,10 @@ const Login = () => {
                       name="email"
                       type="email"
                       autoComplete="email"
-                      className={`w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-100 bg-opacity-50 border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 ${
-                        errors.email && touched.email
-                          ? 'border-red-500 bg-red-500 bg-opacity-10'
-                          : 'border-slate-600 hover:border-slate-500 focus:bg-slate-100'
-                      }`}
+                      className={`w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-100 bg-opacity-50 border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 ${errors.email && touched.email
+                        ? 'border-red-500 bg-red-500 bg-opacity-10'
+                        : 'border-slate-600 hover:border-slate-500 focus:bg-slate-100'
+                        }`}
                       placeholder="name@company.com"
                       value={formData.email}
                       onChange={handleChange}
@@ -380,41 +415,42 @@ const Login = () => {
                   )}
                 </div>
 
-                {/* Password Field */}
-                <div className="space-y-2 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-900">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400 pointer-events-none" />
-                    <input
-                      id="password"
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      className={`w-full pl-10 pr-12 py-2.5 rounded-lg bg-slate-100 bg-opacity-50 border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 ${
-                        errors.password && touched.password
+                {/* Password Field - only for login */}
+                {authFlow === 'login' && (
+                  <div className="space-y-2 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+                    <label htmlFor="password" className="block text-sm font-medium text-slate-900">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400 pointer-events-none" />
+                      <input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="current-password"
+                        className={`w-full pl-10 pr-12 py-2.5 rounded-lg bg-slate-100 bg-opacity-50 border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 ${errors.password && touched.password
                           ? 'border-red-500 bg-red-500 bg-opacity-10'
                           : 'border-slate-600 hover:border-slate-500 focus:bg-slate-100'
-                      }`}
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-300 transition-colors"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
+                          }`}
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-3 text-slate-400 hover:text-slate-300 transition-colors"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    {errors.password && touched.password && (
+                      <p className="text-red-400 text-xs mt-1 animate-fadeIn">{errors.password}</p>
+                    )}
                   </div>
-                  {errors.password && touched.password && (
-                    <p className="text-red-400 text-xs mt-1 animate-fadeIn">{errors.password}</p>
-                  )}
-                </div>
+                )}
               </>
             )}
 
@@ -431,11 +467,10 @@ const Login = () => {
                     name="otp"
                     type="text"
                     maxLength={6}
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-100 bg-opacity-50 border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 text-center text-lg font-mono ${
-                      errors.otp && touched.otp
-                        ? 'border-red-500 bg-red-500 bg-opacity-10'
-                        : 'border-slate-600 hover:border-slate-500 focus:bg-slate-100'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-100 bg-opacity-50 border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 text-center text-lg font-mono ${errors.otp && touched.otp
+                      ? 'border-red-500 bg-red-500 bg-opacity-10'
+                      : 'border-slate-600 hover:border-slate-500 focus:bg-slate-100'
+                      }`}
                     placeholder="000000"
                     value={formData.otp}
                     onChange={handleChange}
@@ -461,11 +496,10 @@ const Login = () => {
                     id="phone"
                     name="phone"
                     type="tel"
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-100 bg-opacity-50 border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 ${
-                      errors.phone && touched.phone
-                        ? 'border-red-500 bg-red-500 bg-opacity-10'
-                        : 'border-slate-600 hover:border-slate-500 focus:bg-slate-100'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-100 bg-opacity-50 border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 ${errors.phone && touched.phone
+                      ? 'border-red-500 bg-red-500 bg-opacity-10'
+                      : 'border-slate-600 hover:border-slate-500 focus:bg-slate-100'
+                      }`}
                     placeholder="+1234567890"
                     value={formData.phone}
                     onChange={handleChange}
@@ -492,11 +526,10 @@ const Login = () => {
                     name="setupOtp"
                     type="text"
                     maxLength={6}
-                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-100 bg-opacity-50 border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 text-center text-lg font-mono ${
-                      errors.setupOtp && touched.setupOtp
-                        ? 'border-red-500 bg-red-500 bg-opacity-10'
-                        : 'border-slate-600 hover:border-slate-500 focus:bg-slate-100'
-                    }`}
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-100 bg-opacity-50 border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 text-center text-lg font-mono ${errors.setupOtp && touched.setupOtp
+                      ? 'border-red-500 bg-red-500 bg-opacity-10'
+                      : 'border-slate-600 hover:border-slate-500 focus:bg-slate-100'
+                      }`}
                     placeholder="000000"
                     value={formData.setupOtp}
                     onChange={handleChange}
@@ -511,13 +544,17 @@ const Login = () => {
             )}
 
             {/* Remember & Forgot */}
-            {/* {authFlow === 'login' && (
+            {authFlow === 'login' && (
               <div className="flex items-center justify-end pt-2 animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
-                <a href="#" className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
-                  Forgot password
-                </a>
+                <button
+                  type="button"
+                  onClick={() => setAuthFlow('forgot-password')}
+                  className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                >
+                  Forgot password?
+                </button>
               </div>
-            )} */}
+            )}
 
             {/* Submit Button */}
             <button
@@ -530,18 +567,20 @@ const Login = () => {
                 <>
                   <Loader className="w-4 h-4 animate-spin" />
                   <span>
-                    {authFlow === 'login' ? 'Signing in...' : 
-                     authFlow === '2fa-verify' ? 'Verifying...' :
-                     authFlow === '2fa-setup' ? 'Setting up...' :
-                     'Completing setup...'}
+                    {authFlow === 'login' ? 'Signing in...' :
+                      authFlow === 'forgot-password' ? 'Sending link...' :
+                        authFlow === '2fa-verify' ? 'Verifying...' :
+                          authFlow === '2fa-setup' ? 'Setting up...' :
+                            'Completing setup...'}
                   </span>
                 </>
               ) : (
                 <span>
-                  {authFlow === 'login' ? 'Sign In' : 
-                   authFlow === '2fa-verify' ? 'Verify Code' :
-                   authFlow === '2fa-setup' ? 'Setup 2FA' :
-                   'Complete Setup'}
+                  {authFlow === 'login' ? 'Sign In' :
+                    authFlow === 'forgot-password' ? 'Send Reset Link' :
+                      authFlow === '2fa-verify' ? 'Verify Code' :
+                        authFlow === '2fa-setup' ? 'Setup 2FA' :
+                          'Complete Setup'}
                 </span>
               )}
             </button>
@@ -576,7 +615,7 @@ const Login = () => {
 
         {/* Footer */}
         <p className="text-center text-slate-500 text-xs mt-8 animate-fadeInUp" style={{ animationDelay: '0.6s' }}>
-          © 2024 Admin Panel. All rights reserved.
+          © 2026 Admin Panel. All rights reserved.
         </p>
       </div>
 
