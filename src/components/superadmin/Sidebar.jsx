@@ -1,6 +1,7 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { C } from "../constants/data";
+import logo from '../../assets/1PAss Name .svg'
 
 const menuItems = [
   { name: "Dashboard", path: "/dashboard", icon: "📊" },
@@ -10,6 +11,7 @@ const menuItems = [
   { name: "Patients", path: "/patients", icon: "👥" },
   // { name: "Appointments", path: "/appointments", icon: "📅" },
   { name: "Packages", path: "/packages", icon: "📦" },
+  { name: "Payments", path: "/payments", icon: "💳" },
   { name: "Email Templates", path: "/email-templates", icon: "📨" },
   // { name: "Coordinators", path: "/coordinators", icon: "🧑‍💼" },
   { name: "Role Management", path: "/role-management", icon: "🛡️" },
@@ -19,12 +21,12 @@ const menuItems = [
 ];
 
 export default function Sidebar() {
-   const location = useLocation();
-   const handleLogout = () => {
+  const location = useLocation();
+  const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
     window.location.href = '/';
-   };
+  };
   return (
     <aside style={{
       position: 'fixed', top: 0, left: 0,
@@ -41,22 +43,19 @@ export default function Sidebar() {
       }}>
         <div>
           <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginRight: 16 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg,${C.teal},${C.tealL})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🌐</div>
-            <span
-              style={{
-                fontSize: 18,
-                fontWeight: 800,
-                background: `linear-gradient(90deg, ${C.tealL}, ${C.goldL})`,
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                display: "inline-block",
-                width: "fit-content"
-              }}
-            >
-              GlobalCare™
-            </span> </div>
-          <div style={{ fontSize: 10, color: C.slate, letterSpacing: 2, textTransform: 'uppercase', marginLeft: '35px' }}>SUPER ADMIN PANEL</div>
+            <div style={{
+              padding: '16px 20px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              // borderBottom: `1px solid ${C.border}`,
+              boxSizing: 'border-box',
+              width: '100%',
+              height: "40px",
+            }}>
+              <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", justifyContent: 'center', cursor: "pointer", width: "100%" }}>
+                <img src={logo} alt="1Pass" style={{ width: "auto", objectFit: "contain" }} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

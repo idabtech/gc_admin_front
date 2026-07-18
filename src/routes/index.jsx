@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import SuperAdminLayout from "../layouts/SuperAdminLayout";
 import Login from "../pages/Login";
+import ResetPassword from "../pages/ResetPassword";
 import NotFound from "../pages/NotFound";
 import Dashboard from "../pages/superadmin/Dashboard";
 import Doctors from "../pages/superadmin/Doctors";
@@ -11,6 +12,7 @@ import PatientDetail from "../pages/superadmin/PatientDetail";
 import PatientEdit from "../pages/superadmin/PatientEdit";
 import Appointments from "../pages/superadmin/Appointments";
 import Packages from "../pages/superadmin/Packages";
+import Payments from "../pages/superadmin/Payments";
 import EmailTemplates from "../pages/superadmin/EmailTemplates";
 import Coordinators from "../pages/superadmin/Coordinators";
 import Reports from "../pages/superadmin/Reports";
@@ -27,6 +29,10 @@ const routerData = createBrowserRouter([
         element: <Login />
     },
     {
+        path: "/reset-password",
+        element: <ResetPassword />
+    },
+    {
         path: "/",
         element: <SuperAdminLayout />,
         children: [
@@ -40,6 +46,7 @@ const routerData = createBrowserRouter([
             { path: "patients/edit/:id", element: <PatientEdit /> },
             { path: "appointments", element: <Appointments /> },
             { path: "packages", element: <Packages /> },
+            { path: "payments", element: <Payments /> },
             { path: "email-templates", element: <EmailTemplates /> },
             { path: "coordinators", element: <Coordinators /> },
             { path: "role-management", element: <RoleManagement /> },

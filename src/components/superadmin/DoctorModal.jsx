@@ -1,18 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { doctorService } from '../../service/doctor.service';
-import { C, SPECIALTIES } from '../constants/data';
+import { C } from '../constants/data';
 
-const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
+const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete, initialMode = 'view' }) => {
   const [mode, setMode] = useState('view'); // view, edit, assign, reject, suspend
   const [formData, setFormData] = useState({});
   const [hospitals, setHospitals] = useState([]);
-  const [specializations, setSpecializations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState('');
   console.log('doctor', doctor)
 
   useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMode(initialMode || 'view');
+    }
+  }, [isOpen, initialMode]);
+
+  useEffect(() => {
     if (doctor) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         name: doctor.name || '',
         email: doctor.email || '',
@@ -55,15 +62,6 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
     }
   }, [doctor]);
 
-  useEffect(() => {
-    if (mode === 'assign') {
-      fetchHospitals();
-    }
-    if (mode === 'edit' || mode === 'assign') {
-      fetchSpecializations();
-    }
-  }, [mode]);
-
   const fetchHospitals = async () => {
     try {
       const data = await doctorService.getHospitalsForAssignment();
@@ -73,14 +71,12 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
     }
   };
 
-  const fetchSpecializations = async () => {
-    try {
-      // const data = await doctorService.getSpecializations();
-      setSpecializations(SPECIALTIES|| []);
-    } catch (err) {
-      console.error(err);
+  useEffect(() => {
+    if (mode === 'assign') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchHospitals();
     }
-  };
+  }, [mode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,7 +84,7 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
 
     try {
       switch (mode) {
-        case 'edit':
+        case 'edit': {
           // Format the data before sending to API
           const formattedData = {
             ...formData,
@@ -96,6 +92,7 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
           };
           await doctorService.updateDoctorProfile(doctor.id, formattedData);
           break;
+        }
         case 'assign':
           await doctorService.assignHospital(doctor.id, formData.hospital_id);
           break;
@@ -271,7 +268,7 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
                 <div>
                   <p style={{ color: C.slate }} className="text-sm mb-1">Working Hours</p>
                   <p className="text-black">
-                    {doctor.available_from && doctor.available_to 
+                    {doctor.available_from && doctor.available_to
                       ? `${doctor.available_from} - ${doctor.available_to}`
                       : doctor.operating_hours || 'N/A'
                     }
@@ -913,7 +910,7 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
           <h2 className="text-2xl font-bold text-black">
             {mode === 'view' && 'Doctor Details'}
             {mode === 'edit' && 'Edit Doctor Profile'}
-            {mode === 'assign' && 'Assign Hospital'}
+            {/* {mode === 'assign' && 'Assign Hospital'} */}
             {mode === 'reject' && 'Reject Doctor Profile'}
             {mode === 'suspend' && 'Suspend Doctor'}
           </h2>
@@ -947,7 +944,7 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
                 </button>
               </>
             )}
-            
+
             <button
               onClick={() => setMode('edit')}
               className="py-2 px-4 rounded-lg font-semibold transition cursor-pointer"
@@ -955,15 +952,15 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
             >
               ✏️ Edit Profile
             </button>
-            
-            <button
+
+            {/* <button
               onClick={() => setMode('assign')}
               className="py-2 px-4 rounded-lg font-semibold transition cursor-pointer"
               style={{ background: C.purple, color: C.white }}
             >
               🏥 Assign Hospital
-            </button>
-            
+            </button> */}
+
             {doctor.is_suspended ? (
               <button
                 onClick={handleUnsuspend}
@@ -982,7 +979,7 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete }) => {
                 ⚠️ Suspend
               </button>
             )}
-            
+
             <button
               onClick={handleDelete}
               disabled={loading}
