@@ -36,5 +36,12 @@ export const emailTemplateService = {
   deleteEmailTemplate: async (id) => {
     const response = await api.delete(`/email-templates/${id}`);
     return response.data;
+  },
+
+  // Send bulk emails
+  sendBulkEmail: async (bulkData) => {
+    const response = await api.post('/email-templates/send-bulk', bulkData);
+    return response.data;
   }
 };
+
