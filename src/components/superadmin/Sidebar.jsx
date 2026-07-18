@@ -13,6 +13,7 @@ const menuItems = [
   { name: "Packages", path: "/packages", icon: "📦" },
   { name: "Payments", path: "/payments", icon: "💳" },
   { name: "Email Templates", path: "/email-templates", icon: "📨" },
+  { name: "Bulk Mailer", path: "/bulk-mailer", icon: "✉️" },
   // { name: "Coordinators", path: "/coordinators", icon: "🧑‍💼" },
   { name: "Role Management", path: "/role-management", icon: "🛡️" },
   { name: "Team Register", path: "/team-register", icon: "👥" },
