@@ -21,6 +21,13 @@ const TeamRegister = () => {
     pages: 1
   });
   
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [page, setPage] = useState(1);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -33,13 +40,13 @@ const TeamRegister = () => {
   });
 
   // Fetch users
-  const fetchUsers = async (page = 1, limit = 20) => {
+  const fetchUsers = async (pageVal = 1, limitVal = 20, activeFilters = {}) => {
     try {
       setLoading(true);
-      const data = await teamService.getUsers(page, limit);
+      const data = await teamService.getUsers(pageVal, limitVal, activeFilters);
       console.log('data', data)
       setUsers(data.users || []);
-      setPagination(data.pagination || { total: 0, page: 1, limit: 20, pages: 1 });
+      setPagination(data.pagination || { total: 0, page: pageVal, limit: limitVal, pages: data.pagination?.pages || 1 });
     } catch (err) {
       console.error('Error fetching users:', err);
       toast.error('Failed to fetch users');
@@ -84,7 +91,8 @@ const TeamRegister = () => {
       toast.success('Role assigned to user successfully');
       setShowModal(false);
       setFormData({email: '', password: '', password_confirmation: '', name: '', phone: '', role: '', hospital_id: '', expires_at: '' });
-      fetchUsers(); // Refresh users to show updated roles
+      setPage(1);
+      setRefreshTrigger(prev => prev + 1); // Refresh users to show updated roles
     } catch (err) {
       console.error('Error assigning role:', err);
       toast.error('Failed to assign role');
@@ -101,16 +109,48 @@ const TeamRegister = () => {
         await teamService.deactivateUser(userId);
         toast.success('User deactivated successfully');
       }
-      fetchUsers(pagination.page, pagination.limit); // Refresh users to show updated status
+      setRefreshTrigger(prev => prev + 1); // Refresh users to show updated status
     } catch (err) {
       console.error('Error updating user status:', err);
       toast.error('Failed to update user status');
     }
   };
 
+  // Debounce search query
   useEffect(() => {
-    fetchUsers();
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch users when filters or page changes
+  useEffect(() => {
+    fetchUsers(page, 20, {
+      search: debouncedSearch,
+      role: selectedRole,
+      is_active: selectedStatus
+    });
+  }, [page, debouncedSearch, selectedRole, selectedStatus, refreshTrigger]);
+
+  const handleSearchChange = (val) => {
+    setSearchTerm(val);
+    setPage(1);
+  };
+
+  const handleRoleChange = (val) => {
+    setSelectedRole(val);
+    setPage(1);
+  };
+
+  const handleStatusChange = (val) => {
+    setSelectedStatus(val);
+    setPage(1);
+  };
+
+  useEffect(() => {
     fetchRoles();
+    fetchHospitals();
   }, []);
   // Check if user is superadmin
   if (!user || !user.roles || !user.roles.some(role => role.name === 'superadmin')) {
@@ -183,6 +223,66 @@ const TeamRegister = () => {
               ))}
       </div>
 
+      {/* Filters Bar */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
+        <div className="flex flex-1 flex-col md:flex-row gap-3 w-full">
+          {/* Search Input */}
+          <div className="flex-1 min-w-[200px]">
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full p-2.5 rounded-lg border text-sm"
+              style={{
+                borderColor: C.border,
+                backgroundColor: C.bg,
+                color: C.black
+              }}
+            />
+          </div>
+
+          {/* Role Filter */}
+          <div className="w-full md:w-48">
+            <select
+              value={selectedRole}
+              onChange={(e) => handleRoleChange(e.target.value)}
+              className="w-full p-2.5 rounded-lg border text-sm"
+              style={{
+                borderColor: C.border,
+                backgroundColor: C.bg,
+                color: C.black
+              }}
+            >
+              <option value="">All Roles</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.name}>
+                  {role.display_name || role.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="w-full md:w-48">
+            <select
+              value={selectedStatus}
+              onChange={(e) => handleStatusChange(e.target.value)}
+              className="w-full p-2.5 rounded-lg border text-sm"
+              style={{
+                borderColor: C.border,
+                backgroundColor: C.bg,
+                color: C.black
+              }}
+            >
+              <option value="">All Status</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Users Table */}
       <div className="rounded-lg border overflow-hidden" style={{ borderColor: `${C.border}` }}>
         <table className="w-full">
@@ -238,20 +338,20 @@ const TeamRegister = () => {
       {pagination.pages > 1 && (
         <div className="flex justify-between items-center mt-4">
           <div className="text-sm opacity-70">
-            Page {pagination.page} of {pagination.pages} (Total: {pagination.total})
+            Page {page} of {pagination.pages} (Total: {pagination.total})
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => fetchUsers(pagination.page - 1, pagination.limit)}
-              disabled={pagination.page === 1}
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
               className="px-4 py-2 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: C.border }}
             >
               Previous
             </button>
             <button
-              onClick={() => fetchUsers(pagination.page + 1, pagination.limit)}
-              disabled={pagination.page === pagination.pages}
+              onClick={() => setPage(page + 1)}
+              disabled={page === pagination.pages}
               className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
