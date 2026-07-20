@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
 import { C } from '../constants/data';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser } from '../../service/auth.service';
+import { getCurrentUser, logoutUser } from '../../service/auth.service';
 import { useAuth } from '../../context/AuthContext';
+import { LogOut } from 'lucide-react';
 
 export default function Header() {
   const [openMenu, setOpenMenu] = useState(false);
   const navigate = useNavigate();
 
   const currentUser = getCurrentUser();
-    const { user } = useAuth();
+  const { user } = useAuth();
+
+  const handleLogout = async () => {
+    await logoutUser();
+    navigate('/');
+    // window.location.href = '/login';
+  };
 
   return (
     <header style={{
@@ -116,6 +123,21 @@ export default function Header() {
                 onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
               >
                 🕘 Log history
+              </div>
+              <div style={{ padding: '14px', borderTop: `1px solid ${C.border}` }}>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                    // padding: '10px 1 3px', borderRadius: 9,
+                    fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                    // background: 'rgba(231,76,60,0.1)',
+                    color: C.red,
+                    border: '1px solid transparent',
+                  }}
+                >
+                  <LogOut size={16} /> Logout
+                </button>
               </div>
             </div>
           )}

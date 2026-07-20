@@ -1,8 +1,18 @@
 import { api } from "./api.service";
 
 export const teamService = {
-    async getUsers(page = 1, limit = 20) {
-        const response = await api.get(`/users?page=${page}&limit=${limit}`);
+    async getUsers(page = 1, limit = 20, filters = {}) {
+        const params = new URLSearchParams();
+        params.append('page', page);
+        params.append('limit', limit);
+        
+        Object.entries(filters).forEach(([key, val]) => {
+            if (val !== undefined && val !== null && val !== '') {
+                params.append(key, val);
+            }
+        });
+
+        const response = await api.get(`/users?${params.toString()}`);
         return response.data;
     },
 
