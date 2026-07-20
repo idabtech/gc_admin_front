@@ -43,6 +43,18 @@ export const doctorService = {
     return response.data;
   },
 
+  // Activate doctor
+  activateDoctor: async (id) => {
+    const response = await api.put(`/doctors/${id}/activate`);
+    return response.data;
+  },
+
+  // Deactivate doctor
+  deactivateDoctor: async (id) => {
+    const response = await api.put(`/doctors/${id}/deactivate`);
+    return response.data;
+  },
+
   // Update doctor profile
   updateDoctorProfile: async (id, profileData) => {
     const response = await api.put(`/doctors/${id}`, profileData);

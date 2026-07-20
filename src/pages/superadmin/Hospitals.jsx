@@ -74,7 +74,7 @@ const HospitalsModern = () => {
     setActiveDropdown(null);
   };
 
-  const handleDropdownAction = (action, hospital, e) => {
+  const handleDropdownAction = async (action, hospital, e) => {
     e.stopPropagation();
     closeDropdown();
     switch (action) {
@@ -82,8 +82,14 @@ const HospitalsModern = () => {
         openHospitalModal(hospital, 'edit');
         break;
       case 'delete':
+        // openHospitalModal(hospital, 'delete');
         if (window.confirm(`Are you sure you want to delete ${hospital.name}?`)) {
-          console.log('Delete hospital:', hospital.name);
+          try {
+            await hospitalService.deleteHospital(hospital.id);
+            fetchHospitals();
+          } catch (err) {
+            console.error(err);
+          }
         }
         break;
       case 'view':
@@ -116,29 +122,29 @@ const HospitalsModern = () => {
     return 'Inactive';
   };
 
-    const handleActivate = async (hospitalId) => {
-      setLoading(true);
-      try {
-        await hospitalService.activateHospital(hospitalId);
-        fetchHospitals();
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-  
-    const handleDeactivate = async (hospitalId) => {
-      setLoading(true);
-      try {
-        await hospitalService.deactivateHospital(hospitalId);
-        fetchHospitals();
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const handleActivate = async (hospitalId) => {
+    setLoading(true);
+    try {
+      await hospitalService.activateHospital(hospitalId);
+      fetchHospitals();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeactivate = async (hospitalId) => {
+    setLoading(true);
+    try {
+      await hospitalService.deactivateHospital(hospitalId);
+      fetchHospitals();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -839,15 +845,14 @@ const HospitalsModern = () => {
                 </div>
               </div>
               <span
-                className={`status-badge status-${
-                  hospital.approval_status === 'pending'
-                    ? 'pending'
-                    : hospital.approval_status === 'rejected'
+                className={`status-badge status-${hospital.approval_status === 'pending'
+                  ? 'pending'
+                  : hospital.approval_status === 'rejected'
                     ? 'rejected'
                     : hospital.is_active
-                    ? 'active'
-                    : 'inactive'
-                }`}
+                      ? 'active'
+                      : 'inactive'
+                  }`}
               >
                 {getStatusText(hospital)}
               </span>
@@ -958,7 +963,7 @@ const HospitalsModern = () => {
                 </>
               )}
 
-              
+
             </div>
           </div>
         ))}
