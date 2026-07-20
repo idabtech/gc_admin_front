@@ -88,7 +88,7 @@ const Doctors = () => {
   };
 
   const handleDelete = async (doctor) => {
-    if (window.confirm(`Are you sure you want to delete Dr. ${doctor.name}? This action cannot be undone.`)) {
+    if (window.confirm(`Are you sure you want to delete ${doctor.name}? This action cannot be undone.`)) {
       try {
         await doctorService.deleteDoctorProfile(doctor.id);
         fetchDoctors();
@@ -99,9 +99,31 @@ const Doctors = () => {
   };
 
   const handleUnsuspend = async (doctor) => {
-    if (window.confirm(`Are you sure you want to unsuspend Dr. ${doctor.name}?`)) {
+    if (window.confirm(`Are you sure you want to unsuspend ${doctor.name}?`)) {
       try {
         await doctorService.unsuspendDoctor(doctor.id);
+        fetchDoctors();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const handleActivate = async (doctor) => {
+    if (window.confirm(`Are you sure you want to activate ${doctor.name}?`)) {
+      try {
+        await doctorService.activateDoctor(doctor.id);
+        fetchDoctors();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const handleDeactivate = async (doctor) => {
+    if (window.confirm(`Are you sure you want to deactivate ${doctor.name}?`)) {
+      try {
+        await doctorService.deactivateDoctor(doctor.id);
         fetchDoctors();
       } catch (err) {
         console.error(err);
@@ -419,6 +441,29 @@ const Doctors = () => {
                           className="dropdown-item"
                         >
                           ⚠️ Suspend
+                        </button>
+                      )}
+                      {doctor.is_active ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDropdown(null);
+                            handleDeactivate(doctor);
+                          }}
+                          className="dropdown-item"
+                        >
+                          🔴 Deactivate Doctor
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDropdown(null);
+                            handleActivate(doctor);
+                          }}
+                          className="dropdown-item"
+                        >
+                          🟢 Activate Doctor
                         </button>
                       )}
                       <button
