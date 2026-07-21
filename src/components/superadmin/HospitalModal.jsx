@@ -1,54 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import { hospitalService } from '../../service/hospital.service';
 import { C } from '../constants/data';
+import { toast } from 'sonner';
 
 const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) => {
-  
+
   const [currentMode, setCurrentMode] = useState(mode);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  
-  useEffect(() => {
-    setCurrentMode(mode);
-  }, [mode]);
 
   useEffect(() => {
-    if (hospital) {
-      setFormData({
-        name: hospital.name || '',
-        email: hospital.email || '',
-        phone: hospital.phone || '',
-        address: hospital.address || '',
-        city: hospital.city || '',
-        state: hospital.state || '',
-        zip_code: hospital.zip_code || '',
-        total_beds: hospital.total_beds || '',
-        available_beds: hospital.available_beds || '',
-        emergency_contact: hospital.emergency_contact || '',
-        description: hospital.description || '',
-        website: hospital.website || '',
-        license_number: hospital.license_number || ''
-      });
-    } else if (mode === 'add') {
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        address: '',
-        city: '',
-        state: '',
-        zip_code: '',
-        total_beds: '',
-        available_beds: '',
-        emergency_contact: '',
-        description: '',
-        website: '',
-        license_number: ''
-      });
+    if (isOpen) {
+      setCurrentMode(mode);
     }
-  }, [hospital, mode]);
+  }, [mode, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setReason('');
+      if (hospital) {
+        setFormData({
+          name: hospital.name || '',
+          email: hospital.email || '',
+          phone: hospital.phone || '',
+          address: hospital.address || '',
+          city: hospital.city || '',
+          state: hospital.state || '',
+          zip_code: hospital.zip_code || '',
+          total_beds: hospital.total_beds || '',
+          available_beds: hospital.available_beds || '',
+          emergency_contact: hospital.emergency_contact || '',
+          description: hospital.description || '',
+          website: hospital.website || '',
+          license_number: hospital.license_number || ''
+        });
+      } else if (mode === 'add') {
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          address: '',
+          city: '',
+          state: '',
+          zip_code: '',
+          total_beds: '',
+          available_beds: '',
+          emergency_contact: '',
+          description: '',
+          website: '',
+          license_number: ''
+        });
+      }
+    }
+  }, [hospital, mode, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,13 +63,16 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
     try {
       if (currentMode === 'add') {
         await hospitalService.createHospital(formData);
+        toast.success('Hospital added successfully');
       } else if (currentMode === 'edit') {
         await hospitalService.updateHospital(hospital.id, formData);
+        toast.success('Hospital updated successfully');
       }
       onActionComplete();
       onClose();
     } catch (err) {
       console.error(err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to save hospital');
     } finally {
       setLoading(false);
     }
@@ -73,10 +82,12 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
     setLoading(true);
     try {
       await hospitalService.approveHospital(hospital.id);
+      toast.success('Hospital approved successfully');
       onActionComplete();
       onClose();
     } catch (err) {
       console.error(err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to approve hospital');
     } finally {
       setLoading(false);
     }
@@ -84,14 +95,16 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
 
   const handleReject = async () => {
     if (!reason.trim()) return;
-    
+
     setLoading(true);
     try {
       await hospitalService.rejectHospital(hospital.id, reason);
+      toast.success('Hospital rejected successfully');
       onActionComplete();
       onClose();
     } catch (err) {
       console.error(err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to reject hospital');
     } finally {
       setLoading(false);
     }
@@ -101,10 +114,12 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
     setLoading(true);
     try {
       await hospitalService.activateHospital(hospital.id);
+      toast.success('Hospital activated successfully');
       onActionComplete();
       onClose();
     } catch (err) {
       console.error(err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to activate hospital');
     } finally {
       setLoading(false);
     }
@@ -114,10 +129,12 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
     setLoading(true);
     try {
       await hospitalService.deactivateHospital(hospital.id);
+      toast.success('Hospital deactivated successfully');
       onActionComplete();
       onClose();
     } catch (err) {
       console.error(err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to deactivate hospital');
     } finally {
       setLoading(false);
     }
@@ -127,10 +144,12 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
     setLoading(true);
     try {
       await hospitalService.deleteHospital(hospital.id);
+      toast.success('Hospital deleted successfully');
       onActionComplete();
       onClose();
     } catch (err) {
       console.error(err);
+      toast.error(err.response?.data?.error || err.message || 'Failed to delete hospital');
     } finally {
       setLoading(false);
     }
@@ -148,59 +167,59 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
                 className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4"
                 style={{ background: C.teal, color: C.white }}
               >
-                {hospital.name?.charAt(0)?.toUpperCase() || 'H'}
+                {hospital?.name?.charAt(0)?.toUpperCase() || 'H'}
               </div>
-              <h3 className="text-xl font-bold text-black">{hospital.name}</h3>
-              <p style={{ color: C.slate }}>{hospital.email}</p>
+              <h3 className="text-xl font-bold text-black">{hospital?.name}</h3>
+              <p style={{ color: C.slate }}>{hospital?.email}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p style={{ color: C.slate }} className="text-sm mb-1">Phone</p>
-                <p className="text-black">{hospital.phone || 'N/A'}</p>
+                <p className="text-black">{hospital?.phone || 'N/A'}</p>
               </div>
               <div>
                 <p style={{ color: C.slate }} className="text-sm mb-1">Website</p>
-                <p className="text-black">{hospital.website || 'N/A'}</p>
+                <p className="text-black">{hospital?.website || 'N/A'}</p>
               </div>
               <div>
                 <p style={{ color: C.slate }} className="text-sm mb-1">Total Beds</p>
-                <p className="text-black">{hospital.total_beds || 'N/A'}</p>
+                <p className="text-black">{hospital?.total_beds || 'N/A'}</p>
               </div>
               <div>
                 <p style={{ color: C.slate }} className="text-sm mb-1">Available Beds</p>
-                <p className="text-black">{hospital.available_beds || 'N/A'}</p>
+                <p className="text-black">{hospital?.available_beds || 'N/A'}</p>
               </div>
             </div>
 
             <div>
               <p style={{ color: C.slate }} className="text-sm mb-1">Address</p>
               <p className="text-black">
-                {hospital.address && `${hospital.address}, `}
-                {hospital.city && `${hospital.city}, `}
-                {hospital.state && `${hospital.state} `}
-                {hospital.zip_code}
+                {hospital?.address && `${hospital?.address}, `}
+                {hospital?.city && `${hospital?.city}, `}
+                {hospital?.state && `${hospital?.state} `}
+                {hospital?.zip_code}
               </p>
             </div>
 
             <div>
               <p style={{ color: C.slate }} className="text-sm mb-1">Emergency Contact</p>
-              <p className="text-black">{hospital.emergency_contact || 'N/A'}</p>
+              <p className="text-black">{hospital?.emergency_contact || 'N/A'}</p>
             </div>
 
             <div>
               <p style={{ color: C.slate }} className="text-sm mb-1">License Number</p>
-              <p className="text-black">{hospital.license_number || 'N/A'}</p>
+              <p className="text-black">{hospital?.license_number || 'N/A'}</p>
             </div>
 
             <div>
               <p style={{ color: C.slate }} className="text-sm mb-1">Description</p>
-              <p className="text-black">{hospital.description || 'N/A'}</p>
+              <p className="text-black">{hospital?.description || 'N/A'}</p>
             </div>
 
             <div>
               <p style={{ color: C.slate }} className="text-sm mb-1">Doctors</p>
-              <p className="text-black">{hospital.doctor_count || 0} doctors</p>
+              <p className="text-black">{hospital?.doctor_count || 0} doctors</p>
             </div>
           </div>
         );
@@ -469,11 +488,11 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
               <div className="text-4xl mb-4">⚠️</div>
               <h3 className="text-xl font-semibold text-black mb-2">Delete Hospital</h3>
               <p style={{ color: C.slate }}>
-                Are you sure you want to delete "{hospital.name}"? This action cannot be undone.
+                Are you sure you want to delete "{hospital?.name}"? This action cannot be undone.
               </p>
-              {hospital.doctor_count > 0 && (
+              {hospital?.doctor_count > 0 && (
                 <p className="mt-2" style={{ color: C.orange }}>
-                  ⚠️ This hospital has {hospital.doctor_count} doctors who will also be affected.
+                  ⚠️ This hospital has {hospital?.doctor_count} doctors who will also be affected.
                 </p>
               )}
             </div>
@@ -507,8 +526,8 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div
         className="rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto backdrop-blur-sm"
-        style={{ 
-          background: C.navy, 
+        style={{
+          background: C.navy,
           borderColor: C.border,
           border: `1px solid ${C.border}`
         }}
@@ -533,7 +552,7 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
         {/* Action Buttons for View Mode */}
         {currentMode === 'view' && (
           <div className="grid grid-cols-2 gap-3 mb-6">
-            {hospital.approval_status === 'pending' && (
+            {hospital?.approval_status === 'pending' && (
               <>
                 <button
                   onClick={handleApprove}
@@ -552,7 +571,7 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
                 </button>
               </>
             )}
-            
+
             <button
               onClick={() => setCurrentMode('edit')}
               className="py-2 px-4 rounded-lg font-semibold transition cursor-pointer"
@@ -560,8 +579,8 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
             >
               ✏️ Edit
             </button>
-            
-            {hospital.is_active ? (
+
+            {hospital?.is_active ? (
               <button
                 onClick={handleDeactivate}
                 disabled={loading}
@@ -580,7 +599,7 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
                 {loading ? 'Activating...' : '▶️ Activate'}
               </button>
             )}
-            
+
             <button
               onClick={() => setCurrentMode('delete')}
               className="py-2 px-4 rounded-lg font-semibold transition cursor-pointer"
