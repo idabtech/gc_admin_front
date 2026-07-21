@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { C } from '../constants/data';
 import { packageService } from '../../service/package.service';
 import { toast } from 'sonner';
+import { ChevronDown } from 'lucide-react';
 
 const PackageModal = ({ isOpen, onClose, package: pkg, onActionComplete, mode = 'view' }) => {
   const [loading, setLoading] = useState(false);
@@ -43,13 +44,17 @@ const PackageModal = ({ isOpen, onClose, package: pkg, onActionComplete, mode = 
     restrictions: ''
   });
 
-  const plans = [
+  const defaultPlans = [
     'Basic',
     'Standard',
     'Premium',
     'Enterprise',
     'Custom'
   ];
+
+  const [localPlans, setLocalPlans] = useState(defaultPlans);
+  const [planDropdownOpen, setPlanDropdownOpen] = useState(false);
+  const planDropdownRef = useRef(null);
 
   const billingCycles = [
     'Monthly',
@@ -63,8 +68,46 @@ const PackageModal = ({ isOpen, onClose, package: pkg, onActionComplete, mode = 
     'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'
   ];
 
+  const handlePlanKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      if (planDropdownOpen) {
+        e.preventDefault();
+        const trimmedVal = formData.plan.trim();
+        if (trimmedVal) {
+          setFormData(prev => ({ ...prev, plan: trimmedVal }));
+          setLocalPlans(prev => {
+            if (!prev.some(p => p.toLowerCase() === trimmedVal.toLowerCase())) {
+              return [...prev, trimmedVal];
+            }
+            return prev;
+          });
+        }
+        setPlanDropdownOpen(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (planDropdownRef.current && !planDropdownRef.current.contains(event.target)) {
+        setPlanDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   useEffect(() => {
     if (pkg && mode !== 'create') {
+      if (pkg.plan) {
+        const trimmedPlan = String(pkg.plan).trim();
+        setLocalPlans(prev => {
+          if (!prev.some(p => p.toLowerCase() === trimmedPlan.toLowerCase())) {
+            return [...prev, trimmedPlan];
+          }
+          return prev;
+        });
+      }
       setFormData({
         label: pkg.label || '',
         plan: pkg.plan || '',
@@ -103,6 +146,7 @@ const PackageModal = ({ isOpen, onClose, package: pkg, onActionComplete, mode = 
         restrictions: pkg.restrictions ? (typeof pkg.restrictions === 'string' ? pkg.restrictions : JSON.stringify(pkg.restrictions, null, 2)) : ''
       });
     } else {
+      setLocalPlans(defaultPlans);
       setFormData({
         label: '',
         plan: '',
@@ -312,21 +356,102 @@ const PackageModal = ({ isOpen, onClose, package: pkg, onActionComplete, mode = 
                 />
               </div>
 
-              <div>
+              <div className="relative" ref={planDropdownRef}>
                 <label className="block text-sm font-medium mb-2" style={{ color: C.slateL }}>
                   Plan
                 </label>
-                <select
-                  value={formData.plan}
-                  onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg border bg-transparent text-black"
-                  style={{ borderColor: C.border }}
-                >
-                  <option value="">Select Plan</option>
-                  {plans.map(plan => (
-                    <option key={plan} value={plan}>{plan}</option>
-                  ))}
-                </select>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    value={formData.plan}
+                    onChange={(e) => {
+                      setFormData({ ...formData, plan: e.target.value });
+                      setPlanDropdownOpen(true);
+                    }}
+                    onFocus={() => setPlanDropdownOpen(true)}
+                    onKeyDown={handlePlanKeyDown}
+                    placeholder="Select or type plan"
+                    className="w-full px-4 py-3 pr-10 rounded-lg border bg-transparent text-black"
+                    style={{ borderColor: C.border }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPlanDropdownOpen(!planDropdownOpen)}
+                    className="absolute right-3 focus:outline-none cursor-pointer"
+                    style={{ color: C.slateL }}
+                  >
+                    <ChevronDown className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {planDropdownOpen && (
+                  <div
+                    className="absolute left-0 right-0 z-50 rounded-lg border mt-1 overflow-y-auto"
+                    style={{
+                      borderColor: C.border,
+                      backgroundColor: C.white,
+                      maxHeight: '200px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                    }}
+                  >
+                    {formData.plan.trim() && !localPlans.some(p => p.toLowerCase() === formData.plan.trim().toLowerCase()) && (
+                      <button
+                        type="button"
+                        className="w-full text-left px-4 py-2.5 text-sm font-semibold transition-all border-b cursor-pointer hover:bg-gray-50"
+                        style={{
+                          color: C.teal,
+                          borderColor: C.border,
+                          backgroundColor: C.tealTransparent,
+                        }}
+                        onClick={() => {
+                          const trimmedVal = formData.plan.trim();
+                          setFormData({ ...formData, plan: trimmedVal });
+                          setLocalPlans(prev => {
+                            if (!prev.some(p => p.toLowerCase() === trimmedVal.toLowerCase())) {
+                              return [...prev, trimmedVal];
+                            }
+                            return prev;
+                          });
+                          setPlanDropdownOpen(false);
+                        }}
+                      >
+                        + Add "{formData.plan.trim()}"
+                      </button>
+                    )}
+                    {localPlans.filter(plan => plan.toLowerCase().includes((formData.plan || '').toLowerCase())).length > 0 ? (
+                      localPlans
+                        .filter(plan => plan.toLowerCase().includes((formData.plan || '').toLowerCase()))
+                        .map((plan, i, arr) => {
+                          const isSelected = formData.plan === plan;
+                          return (
+                            <button
+                              key={plan}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, plan });
+                                setPlanDropdownOpen(false);
+                              }}
+                              className="w-full flex items-center justify-between px-4 py-2.5 text-left text-sm transition-all cursor-pointer hover:bg-gray-100"
+                              style={{
+                                borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
+                                backgroundColor: isSelected ? C.tealTransparent : 'transparent',
+                                color: C.black,
+                              }}
+                            >
+                              <span>{plan}</span>
+                              {isSelected && (
+                                <span style={{ color: C.teal }} className="font-semibold text-xs">Selected</span>
+                              )}
+                            </button>
+                          );
+                        })
+                    ) : (
+                      !formData.plan.trim() && (
+                        <div className="px-4 py-2.5 text-sm text-gray-500">No options available</div>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
