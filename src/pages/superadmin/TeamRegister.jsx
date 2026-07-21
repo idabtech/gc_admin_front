@@ -5,7 +5,7 @@ import { hospitalService } from "../../service/hospital.service";
 import { C } from "../../components/constants/data";
 import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
-import { Plus } from "lucide-react";
+import { Plus, Eye, EyeOff } from "lucide-react";
 
 const TeamRegister = () => {
   const { isAuthenticated, user } = useAuth();
@@ -20,14 +20,23 @@ const TeamRegister = () => {
     limit: 20,
     pages: 1
   });
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [page, setPage] = useState(1);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    if (!showModal) {
+      setShowPassword(false);
+      setShowConfirmPassword(false);
+    }
+  }, [showModal]);
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -80,7 +89,7 @@ const TeamRegister = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.email || !formData.password || !formData.password_confirmation || !formData.name || !formData.phone || !formData.role) {
       toast.error('Email, Password, Password Confirmation, Name, Phone and Role are required');
       return;
@@ -90,7 +99,7 @@ const TeamRegister = () => {
       await teamService.assignRole(formData);
       toast.success('Role assigned to user successfully');
       setShowModal(false);
-      setFormData({email: '', password: '', password_confirmation: '', name: '', phone: '', role: '', hospital_id: '', expires_at: '' });
+      setFormData({ email: '', password: '', password_confirmation: '', name: '', phone: '', role: '', hospital_id: '', expires_at: '' });
       setPage(1);
       setRefreshTrigger(prev => prev + 1); // Refresh users to show updated roles
     } catch (err) {
@@ -167,60 +176,62 @@ const TeamRegister = () => {
         <h1 className="text-2xl font-bold">Team Register</h1>
         <button
           onClick={() => setShowModal(true)}
-          style={{ display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.85rem 1.5rem',
-                  background: 'linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 8px 20px rgba(14, 165, 233, 0.3)'}}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.85rem 1.5rem',
+            background: 'linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '10px',
+            fontWeight: '600',
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 8px 20px rgba(14, 165, 233, 0.3)'
+          }}
         >
           <Plus size={18} />
-          Assign Role 
+          Assign Role
         </button>
       </div>
 
       {/* STATS CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
-              {[
-                { label: 'Total Users', value: pagination.total, color: '#3b82f6', icon: '👥' },
-                { label: 'Total Roles', value: roles.length, color: '#10b981', icon: '🛡️' },
-                { label: 'Total Hospitals', value: hospitals.length, color: '#f59e0b', icon: '🏥' },
-              ].map((stat, idx) => (
-                <div
-                  key={idx}
-                  className="p-6 rounded-xl border backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
-                  style={{
-                    background: `${stat.color}08`,
-                    borderColor: `${stat.color}30`,
-                  }}
+        {[
+          { label: 'Total Users', value: pagination.total, color: '#3b82f6', icon: '👥' },
+          { label: 'Total Roles', value: roles.length, color: '#10b981', icon: '🛡️' },
+          { label: 'Total Hospitals', value: hospitals.length, color: '#f59e0b', icon: '🏥' },
+        ].map((stat, idx) => (
+          <div
+            key={idx}
+            className="p-6 rounded-xl border backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+            style={{
+              background: `${stat.color}08`,
+              borderColor: `${stat.color}30`,
+            }}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p style={{ color: C.slate }} className="text-sm font-medium mb-1">
+                  {stat.label}
+                </p>
+                <p
+                  className="text-3xl font-bold"
+                  style={{ color: stat.color }}
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p style={{ color: C.slate }} className="text-sm font-medium mb-1">
-                        {stat.label}
-                      </p>
-                      <p 
-                        className="text-3xl font-bold"
-                        style={{ color: stat.color }}
-                      >
-                        {stat.value}
-                      </p>
-                    </div>
-                    <span className="text-2xl">{stat.icon}</span>
-                  </div>
-                  <div 
-                    className="mt-4 h-1 rounded-full opacity-20"
-                    style={{ background: stat.color }}
-                  />
-                </div>
-              ))}
+                  {stat.value}
+                </p>
+              </div>
+              <span className="text-2xl">{stat.icon}</span>
+            </div>
+            <div
+              className="mt-4 h-1 rounded-full opacity-20"
+              style={{ background: stat.color }}
+            />
+          </div>
+        ))}
       </div>
 
       {/* Filters Bar */}
@@ -389,37 +400,57 @@ const TeamRegister = () => {
                 />
               </div>
               <div className="mb-4">
-                <label className="block mb-2 text-sm">Phone *</label>
+                <label className="block mb-2 text-sm">Phone</label>
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full p-2 rounded border"
                   style={{ borderColor: `${C.border}`, backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  required
+                // required
                 />
               </div>
               <div className="mb-4">
                 <label className="block mb-2 text-sm">Password *</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full p-2 rounded border"
-                  style={{ borderColor: `${C.border}`, backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full p-2 pr-10 rounded border"
+                    style={{ borderColor: `${C.border}`, backgroundColor: 'rgba(255,255,255,0.05)' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors focus:outline-none"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <div className="mb-4">
                 <label className="block mb-2 text-sm">Password Confirmation *</label>
-                <input
-                  type="password"
-                  value={formData.password_confirmation}
-                  onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
-                  className="w-full p-2 rounded border"
-                  style={{ borderColor: `${C.border}`, backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.password_confirmation}
+                    onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
+                    className="w-full p-2 pr-10 rounded border"
+                    style={{ borderColor: `${C.border}`, backgroundColor: 'rgba(255,255,255,0.05)' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors focus:outline-none"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <div className="mb-4">
                 <label className="block mb-2 text-sm">Role *</label>
@@ -438,7 +469,7 @@ const TeamRegister = () => {
                   ))}
                 </select>
               </div>
-             
+
               <div className="flex gap-2 justify-end">
                 <button
                   type="button"
