@@ -31,7 +31,7 @@ export const authService = {
     },
 
     async sendResetOtp(data) {
-        const response = await api.post(`/auth/sendResetOtp`, {
+        const response = await api.post(`/2fa/resend`, {
             email: data.email
         });
         return response.data;
