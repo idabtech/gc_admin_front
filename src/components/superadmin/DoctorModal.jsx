@@ -8,7 +8,6 @@ const DoctorModal = ({ isOpen, onClose, doctor, onActionComplete, initialMode = 
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState('');
-  console.log('doctor', doctor)
 
   useEffect(() => {
     if (isOpen) {
