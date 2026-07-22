@@ -62,6 +62,11 @@ const RoleManagement = () => {
 
   // Fetch permissions for a specific role
   const fetchRolePermissions = async (roleId) => {
+    const role = roles.find(r => r.id === roleId);
+    if (role && role.name === 'superadmin') {
+      setRolePermissions(permissions);
+      return;
+    }
 
     try {
       const data = await roleService.getRolePermissions(roleId);
@@ -89,6 +94,10 @@ const RoleManagement = () => {
 
   // Update role permissions
   const handleUpdatePermissions = async (permissionIds) => {
+    if (selectedRole && selectedRole.name === 'superadmin') {
+      toast.error('Cannot modify superadmin permissions');
+      return;
+    }
 
     try {
       await roleService.updateRolePermissions(selectedRole.id, permissionIds);
@@ -103,6 +112,11 @@ const RoleManagement = () => {
 
   // Delete role
   const handleDeleteRole = async (roleId) => {
+    const role = roles.find(r => r.id === roleId);
+    if (role && role.name === 'superadmin') {
+      toast.error('Cannot delete superadmin role');
+      return;
+    }
 
     if (window.confirm('Are you sure you want to delete this role?')) {
       try {
@@ -119,21 +133,25 @@ const RoleManagement = () => {
   // View role permissions
   const handleViewPermissions = (role) => {
     setSelectedRole(role);
-    fetchRolePermissions(role.id);
+    if (role.name === 'superadmin') {
+      setRolePermissions(permissions);
+    } else {
+      fetchRolePermissions(role.id);
+    }
     setShowPermissionModal(true);
   };
 
   useEffect(() => {
-    // if (isAuthenticated) {
-    fetchRoles();
-    fetchPermissions();
-    fetchCategories();
-    // }
-  }, []);
+    if (user && user.roles && user.roles.some(role => role.name === 'superadmin')) {
+      fetchRoles();
+      fetchPermissions();
+      fetchCategories();
+    }
+  }, [user]);
 
   // Check if user is superadmin
   // console.log('user.roles.some(role => role.name === superadmin)', user.roles[0].name === 'superadmin');
-  if (!user || !user.roles || !user.roles[0].name === 'superadmin') {
+  if (!user || !user.roles || !user.roles.some(role => role.name === 'superadmin')) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-lg text-red-500">Access Denied: Superadmin only</div>
@@ -254,8 +272,13 @@ const RoleManagement = () => {
                     </button>
                     <button
                       onClick={() => handleDeleteRole(role.id)}
-                      className="px-3 py-1 text-sm rounded cursor-pointer"
-                      style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444' }}
+                      disabled={role.name === 'superadmin'}
+                      className="px-3 py-1 text-sm rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: role.name === 'superadmin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.2)',
+                        color: role.name === 'superadmin' ? '#ef444480' : '#ef4444',
+                        cursor: role.name === 'superadmin' ? 'not-allowed' : 'pointer'
+                      }}
                     >
                       Delete
                     </button>
@@ -363,6 +386,7 @@ const RoleManagement = () => {
                     <input
                       type="checkbox"
                       checked={rolePermissions.some(rp => rp.id === permission.id)}
+                      disabled={selectedRole.name === 'superadmin'}
                       onChange={(e) => {
                         if (e.target.checked) {
                           setRolePermissions([...rolePermissions, permission]);
@@ -391,7 +415,11 @@ const RoleManagement = () => {
               </button>
               <button
                 onClick={() => handleUpdatePermissions(rolePermissions.map(p => p.id))}
-                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                disabled={selectedRole.name === 'superadmin'}
+                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: selectedRole.name === 'superadmin' ? 'rgba(59, 130, 246, 0.4)' : '#2563eb'
+                }}
               >
                 Save Permissions
               </button>

@@ -135,12 +135,14 @@ const TeamRegister = () => {
 
   // Fetch users when filters or page changes
   useEffect(() => {
-    fetchUsers(page, 20, {
-      search: debouncedSearch,
-      role: selectedRole,
-      is_active: selectedStatus
-    });
-  }, [page, debouncedSearch, selectedRole, selectedStatus, refreshTrigger]);
+    if (user && user.roles && user.roles.some(role => role.name === 'superadmin')) {
+      fetchUsers(page, 20, {
+        search: debouncedSearch,
+        role: selectedRole,
+        is_active: selectedStatus
+      });
+    }
+  }, [page, debouncedSearch, selectedRole, selectedStatus, refreshTrigger, user]);
 
   const handleSearchChange = (val) => {
     setSearchTerm(val);
@@ -158,9 +160,11 @@ const TeamRegister = () => {
   };
 
   useEffect(() => {
-    fetchRoles();
-    fetchHospitals();
-  }, []);
+    if (user && user.roles && user.roles.some(role => role.name === 'superadmin')) {
+      fetchRoles();
+      fetchHospitals();
+    }
+  }, [user]);
   // Check if user is superadmin
   if (!user || !user.roles || !user.roles.some(role => role.name === 'superadmin')) {
     return (

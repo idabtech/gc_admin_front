@@ -2,6 +2,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { C } from "../constants/data";
 import logo from '../../assets/1PAss Name .svg'
+import { useAuth } from "../../context/AuthContext";
 
 const menuItems = [
   { name: "Dashboard", path: "/dashboard", icon: "📊" },
@@ -23,6 +24,8 @@ const menuItems = [
 
 export default function Sidebar() {
   const location = useLocation();
+  const { user } = useAuth();
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
@@ -60,9 +63,12 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Nav */}
       <nav style={{ flex: 1, padding: '5px 14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
         {menuItems.map(({ path, name, icon: Icon }) => {
+          const isRestricted = ["Team Register", "Role Management", "Payments"].includes(name);
+          const isSuperAdmin = user?.roles?.some(role => role.name === 'superadmin');
+          if (isRestricted && !isSuperAdmin) return null;
+
           const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
           return (
             <Link
