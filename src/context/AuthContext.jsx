@@ -7,51 +7,54 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const login = (userData) => {
+  const getUserProfile = async () => {
+    try {
+      const response = await authService.getUserProfile();
+      setUser(response.user);
+      setIsAuthenticated(true);
+      localStorage.setItem('userData', JSON.stringify(response.user));
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+    }
+  };
+
+  const login = (userData, token) => {
     setUser(userData);
     setIsAuthenticated(true);
-    localStorage.setItem('token', userData.token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    const jwtToken = token || userData?.token || userData?.accessToken;
+    if (jwtToken) {
+      localStorage.setItem('token', jwtToken);
+    }
+    localStorage.setItem('userData', JSON.stringify(userData));
+    getUserProfile(); // immediately fetch full profile (roles, etc.)
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('userData');
   };
 
-    const getUserProfile = async () => {
-      try {
-        const response = await authService.getUserProfile();
-        setUser(response.user);
-      } catch (error) {
-        console.error('Error getting user profile:', error);
-      }
-    };
-
-     useEffect(() => {
+  useEffect(() => {
     // Check if user is already authenticated in localStorage
     const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (token && storedUser && !user) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        // Clear corrupted data
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    const storedUser = localStorage.getItem('userData');
+
+    if (token) {
+      setIsAuthenticated(true);
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+        } catch (error) {
+          console.error('Error parsing stored user data:', error);
+        }
       }
-    } else if (token && !user) {
-      // Only fetch profile if we have a token but no user data
-      getUserProfile();
+      getUserProfile(); // refresh user profile details and roles
     }
   }, []);
-   
+
   return (
     <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
       {children}

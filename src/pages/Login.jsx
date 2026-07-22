@@ -4,8 +4,10 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, Mail, Lock, Loader, Shield, Smartphone, Key } from 'lucide-react';
 import { C } from '../components/constants/data';
 import { authService } from '../service/auth.service';
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
+  const { login } = useAuth();
   // Authentication flow states
   const [authFlow, setAuthFlow] = useState('login'); // 'login', '2fa-verify', '2fa-setup', '2fa-setup-verify'
   const [pendingUser, setPendingUser] = useState(null);
@@ -177,6 +179,9 @@ const Login = () => {
       localStorage.setItem('token', response.accessToken);
       localStorage.setItem('userData', JSON.stringify(response.user));
 
+      // Call login from AuthContext to sync context state
+      login(response.user, response.accessToken);
+
       toast.success('Login successful! Redirecting...', {
         description: 'Welcome back to your admin panel'
       });
@@ -210,6 +215,9 @@ const Login = () => {
       // Store token and user data from nested data structure
       localStorage.setItem('token', response.data.accessToken);
       localStorage.setItem('userData', JSON.stringify(response.data.user));
+
+      // Call login from AuthContext to sync context state
+      login(response.data.user, response.data.accessToken);
 
       toast.success('Login successful! Redirecting...', {
         description: '2FA verification complete'
