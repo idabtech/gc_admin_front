@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { C } from '../constants/data';
-import { emailTemplateService } from '../../service/emailTemplate.service';
+import { smsTemplateService } from '../../service/smsTemplate.service';
 import { patientService } from '../../service/patient.service';
 import { doctorService } from '../../service/doctor.service';
 import { hospitalService } from '../../service/hospital.service';
 import { toast } from 'sonner';
-import { Mail, Users, FileText, Send, X, CheckCircle, AlertCircle, Eye, Edit3, Sparkles } from 'lucide-react';
+import { MessageSquare, Users, FileText, Send, X, CheckCircle, AlertCircle, Eye, Edit3, Sparkles } from 'lucide-react';
 
-const BulkEmailModal = ({ isOpen, onClose }) => {
+const BulkSmsModal = ({ isOpen, onClose }) => {
   const [recipients, setRecipients] = useState([]);
   const [targetType, setTargetType] = useState('patients'); // 'patients' | 'doctors' | 'hospitals'
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
-  const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [variableValues, setVariableValues] = useState({});
   const [loading, setLoading] = useState(false);
@@ -21,23 +20,18 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddRecipientDropdown, setShowAddRecipientDropdown] = useState(false);
 
-  // Parse variables dynamically from body and subject
+  // Parse variables dynamically from body
   const getCustomVariables = () => {
     const vars = new Set();
     const regexList = [
-      /\$\{([a-zA-Z0-9_]+)\}/g,
-      /\{\{([a-zA-Z0-9_]+)\}\}/g
+      /\{\{([a-zA-Z0-9_]+)\}\}/g,
+      /\$\{([a-zA-Z0-9_]+)\}/g
     ];
 
     regexList.forEach(regex => {
       let match;
-      // Reset regex index for safety
       regex.lastIndex = 0;
       while ((match = regex.exec(body)) !== null) {
-        vars.add(match[1]);
-      }
-      regex.lastIndex = 0;
-      while ((match = regex.exec(subject)) !== null) {
         vars.add(match[1]);
       }
     });
@@ -68,7 +62,6 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
       fetchTemplates();
       setSendResult(null);
       setSelectedTemplateId('');
-      setSubject('');
       setBody('');
       setVariableValues({});
       setActiveTab('edit');
@@ -97,13 +90,13 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
 
   const fetchTemplates = async () => {
     try {
-      const response = await emailTemplateService.getEmailTemplates({ status: 'active' });
+      const response = await smsTemplateService.getSmsTemplates({ status: 'active' });
       if (response.templates) {
         setTemplates(response.templates);
       }
     } catch (err) {
       console.error('Error fetching templates:', err);
-      toast.error('Failed to load email templates');
+      toast.error('Failed to load SMS templates');
     }
   };
 
@@ -111,15 +104,13 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
     const templateId = e.target.value;
     setSelectedTemplateId(templateId);
     if (!templateId) {
-      setSubject('');
       setBody('');
       return;
     }
     const selected = templates.find(t => t.id === parseInt(templateId));
     if (selected) {
-      setSubject(selected.subject);
       setBody(selected.body);
-      toast.success(`Loaded template: ${selected.name}`);
+      toast.success(`Loaded SMS template: ${selected.name}`);
     }
   };
 
@@ -133,28 +124,28 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    let email = '';
+    let phone = '';
     let name = '';
     if (targetType === 'patients') {
-      email = item.email;
+      phone = item.phone || item.recipient_phone;
       name = item.name;
     } else if (targetType === 'doctors') {
-      email = item.email;
+      phone = item.phone;
       name = `Dr. ${item.name}`;
     } else if (targetType === 'hospitals') {
-      email = item.email;
+      phone = item.phone || item.contact_phone;
       name = item.name;
     }
 
-    if (!email) {
-      toast.error('This contact has no email configured');
+    if (!phone) {
+      toast.error('This contact has no phone number configured');
       return;
     }
 
     setRecipients(prev => [...prev, {
       id: item.id,
       name,
-      email,
+      phone,
       type: targetType
     }]);
     setSearchQuery('');
@@ -164,23 +155,23 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
   const addCustomRecipient = (val) => {
     const trimmed = val.trim();
     if (!trimmed) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      toast.error('Invalid email address format');
+    if (!/^\+?[0-9\s\-()]{5,20}$/.test(trimmed)) {
+      toast.error('Invalid phone number format');
       return;
     }
-    if (recipients.some(r => r.email === trimmed)) {
+    if (recipients.some(r => r.phone === trimmed)) {
       toast.error('Recipient already added');
       return;
     }
     setRecipients(prev => [...prev, {
       id: `custom-${Date.now()}-${Math.random()}`,
       name: trimmed,
-      email: trimmed,
+      phone: trimmed,
       type: 'custom'
     }]);
     setSearchQuery('');
     setShowAddRecipientDropdown(false);
-    toast.success(`Added custom recipient: ${trimmed}`);
+    toast.success(`Added custom phone number: ${trimmed}`);
   };
 
   const addAllRecipients = () => {
@@ -190,15 +181,15 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
     const newRecipients = [...recipients];
 
     currentList.forEach(item => {
-      let email = item.email;
+      let phone = item.phone || item.recipient_phone || item.contact_phone;
       let name = item.name;
       if (targetType === 'doctors') name = `Dr. ${item.name}`;
 
-      if (email && !newRecipients.some(r => r.id === item.id && r.type === targetType)) {
+      if (phone && !newRecipients.some(r => r.id === item.id && r.type === targetType)) {
         newRecipients.push({
           id: item.id,
           name,
-          email,
+          phone,
           type: targetType
         });
         countAdded++;
@@ -216,7 +207,7 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
     const startPos = textarea.selectionStart;
     const endPos = textarea.selectionEnd;
     const text = textarea.value;
-    const replacement = `\${${variable}}`;
+    const replacement = `{{${variable}}}`;
     const newBody = text.substring(0, startPos) + replacement + text.substring(endPos);
 
     setBody(newBody);
@@ -233,12 +224,8 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
       toast.error('Please select at least one recipient');
       return;
     }
-    if (!subject.trim()) {
-      toast.error('Subject is required');
-      return;
-    }
     if (!body.trim()) {
-      toast.error('Email body is required');
+      toast.error('SMS body is required');
       return;
     }
 
@@ -250,36 +237,35 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
         recipients: recipients.map(r => ({
           id: r.id,
           name: r.name,
-          email: r.email,
+          phone: r.phone,
           variables: {
             name: r.name,
-            email: r.email,
+            phone: r.phone,
             ...variableValues
           }
         })),
-        subject,
         body
       };
 
-      const res = await emailTemplateService.sendBulkEmail(payload);
+      const res = await smsTemplateService.sendBulkSms(payload);
       setSendResult(res);
-      toast.success('Bulk email sending completed!');
+      toast.success('Bulk SMS sending completed!');
     } catch (err) {
-      console.error('Error sending bulk emails:', err);
-      toast.error(err.response?.data?.error || 'Failed to send bulk emails');
+      console.error('Error sending bulk SMS:', err);
+      toast.error(err.response?.data?.error || 'Failed to send bulk SMS');
     } finally {
       setLoading(false);
     }
   };
 
-  const getPreviewHtml = () => {
+  const getPreviewText = () => {
     if (recipients.length === 0) return body;
     const firstRecipient = recipients[0];
     let preview = body;
-    preview = preview.replace(/\$\{name\}/g, firstRecipient.name || 'Recipient Name');
     preview = preview.replace(/\{\{name\}\}/g, firstRecipient.name || 'Recipient Name');
-    preview = preview.replace(/\$\{email\}/g, firstRecipient.email || 'recipient@email.com');
-    preview = preview.replace(/\{\{email\}\}/g, firstRecipient.email || 'recipient@email.com');
+    preview = preview.replace(/\$\{name\}/g, firstRecipient.name || 'Recipient Name');
+    preview = preview.replace(/\{\{phone\}\}/g, firstRecipient.phone || 'Phone Number');
+    preview = preview.replace(/\$\{phone\}/g, firstRecipient.phone || 'Phone Number');
 
     // Replace custom parsed variables
     Object.entries(variableValues).forEach(([key, val]) => {
@@ -291,6 +277,9 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
     return preview;
   };
 
+  const smsLength = body.length;
+  const smsParts = smsLength === 0 ? 0 : (smsLength <= 160 ? 1 : Math.ceil(smsLength / 153));
+
   if (!isOpen) return null;
 
   // Filter current search list
@@ -298,12 +287,11 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
   const filteredList = activeContacts.filter(item =>
     !recipients.some(r => r.id === item.id && r.type === targetType) &&
     (item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+      (item.phone || item.recipient_phone || item.contact_phone)?.includes(searchQuery))
   );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm bg-opacity-50">
-
       <div
         className="w-full max-w-5xl h-[85vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200"
         style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
@@ -311,12 +299,12 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-sky-500">
-              <Mail className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-teal">
+              <MessageSquare className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Send Bulk Email</h2>
-              <p className="text-xs text-gray-500">Draft and send templates or custom emails to patients, doctors, or hospitals</p>
+              <h2 className="text-xl font-bold text-gray-900">Send Bulk SMS</h2>
+              <p className="text-xs text-gray-500">Draft and dispatch bulk SMS templates to patients, doctors, or hospitals</p>
             </div>
           </div>
           <button
@@ -393,25 +381,28 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
               />
               {showAddRecipientDropdown && searchQuery && (
                 <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-20">
-                  {filteredList.map(item => (
-                    <button
-                      key={item.id}
-                      onClick={() => addRecipient(item)}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-[10px] transition-colors flex flex-col border-b border-gray-50 last:border-b-0"
-                    >
-                      <span className="font-semibold text-gray-800">{item.name}</span>
-                      <span className="text-gray-400">{item.email || 'No email configured'}</span>
-                    </button>
-                  ))}
-                  {filteredList.length === 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(searchQuery.trim()) && (
+                  {filteredList.map(item => {
+                    const phoneNum = item.phone || item.recipient_phone || item.contact_phone;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => addRecipient(item)}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-[10px] transition-colors flex flex-col border-b border-gray-50 last:border-b-0"
+                      >
+                        <span className="font-semibold text-gray-800">{item.name}</span>
+                        <span className="text-gray-400">{phoneNum || 'No phone number configured'}</span>
+                      </button>
+                    );
+                  })}
+                  {filteredList.length === 0 && !/^\+?[0-9\s\-()]{5,20}$/.test(searchQuery.trim()) && (
                     <div className="p-3 text-[10px] text-gray-500 text-center">No matches found</div>
                   )}
-                  {searchQuery.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(searchQuery.trim()) && (
+                  {searchQuery.trim() && /^\+?[0-9\s\-()]{5,20}$/.test(searchQuery.trim()) && (
                     <button
                       onClick={() => addCustomRecipient(searchQuery)}
                       className="w-full text-left px-3 py-2 bg-teal/5 hover:bg-teal/10 text-teal text-[10px] font-bold transition-colors border-t border-gray-100 flex items-center gap-1.5 cursor-pointer"
                     >
-                      <span>+</span> Add "{searchQuery.trim()}" as custom email
+                      <span>+</span> Add "{searchQuery.trim()}" as custom number
                     </button>
                   )}
                 </div>
@@ -442,7 +433,7 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
                   >
                     <div className="min-w-0 pr-2">
                       <p className="text-[11px] font-semibold text-gray-800 truncate">{r.name}</p>
-                      <p className="text-[9px] text-gray-400 truncate">{r.email}</p>
+                      <p className="text-[9px] text-gray-400 truncate">{r.phone}</p>
                     </div>
                     <button
                       onClick={() => removeRecipient(r.id)}
@@ -464,7 +455,7 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
                 <div className="w-16 h-16 rounded-full bg-tealTransparent text-teal flex items-center justify-center mb-4">
                   <CheckCircle className="w-8 h-8" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">Emails Processed</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">SMS Messages Processed</h3>
                 <p className="text-sm text-gray-500 text-center mb-6">{sendResult.message}</p>
 
                 {/* Stat cards */}
@@ -489,7 +480,7 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
                   <div className="space-y-2">
                     {sendResult.results?.map((r, i) => (
                       <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-gray-100 last:border-b-0">
-                        <span className="font-medium text-gray-700">{r.email}</span>
+                        <span className="font-medium text-gray-700">{r.phone}</span>
                         {r.status === 'sent' ? (
                           <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-semibold text-[10px]">
                             ✓ Sent
@@ -508,11 +499,11 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
                   onClick={() => setSendResult(null)}
                   className="mt-6 px-6 py-2.5 bg-teal text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all cursor-pointer"
                 >
-                  Draft Another Email
+                  Draft Another SMS
                 </button>
               </div>
             ) : (
-              /* EMAIL EDITOR VIEW */
+              /* SMS EDITOR VIEW */
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Editor Top Bar: Template, Tabs */}
                 <div className="px-6 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
@@ -585,34 +576,25 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
                         </div>
                       )}
 
-                      {/* Subject */}
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                          Subject Line
-                        </label>
-                        <input
-                          type="text"
-                          value={subject}
-                          onChange={(e) => setSubject(e.target.value)}
-                          placeholder="Enter email subject line..."
-                          className="w-full px-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-teal bg-white"
-                        />
-                      </div>
-
                       {/* Editor / Variables Box */}
                       <div className="grid grid-cols-3 gap-6">
                         {/* Body field */}
                         <div className="col-span-2 space-y-1.5">
-                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                            Email Message (HTML supported)
-                          </label>
+                          <div className="flex justify-between items-center">
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                              SMS Message Body
+                            </label>
+                            <span className={`text-[10px] font-semibold ${smsLength > 160 ? 'text-amber-600' : 'text-slate-400'}`}>
+                              {smsLength} / 160 ({smsParts} parts)
+                            </span>
+                          </div>
                           <textarea
                             ref={textareaRef}
-                            rows={10}
+                            rows={8}
                             value={body}
                             onChange={(e) => setBody(e.target.value)}
-                            placeholder="Draft your email message here. Standard HTML tags are supported for formatting (e.g., <p>, <b>, <a>, etc.)."
-                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-teal font-mono bg-gray-50"
+                            placeholder="Draft your SMS message here. Use double curly braces like {{name}} to insert placeholders."
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-teal bg-gray-50 text-gray-800"
                           />
                         </div>
 
@@ -630,7 +612,7 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
                           <div className="space-y-1.5">
                             {[
                               { tag: 'name', label: 'Recipient Name' },
-                              { tag: 'email', label: 'Recipient Email' }
+                              { tag: 'phone', label: 'Phone Number' }
                             ].map(variable => (
                               <button
                                 key={variable.tag}
@@ -640,7 +622,7 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
                               >
                                 <span>{variable.label}</span>
                                 <span className="font-mono text-[9px] text-teal bg-teal/5 px-1.5 py-0.5 rounded">
-                                  ${'{'}{variable.tag}{'}'}
+                                  {"{{"}{variable.tag}{"}}"}
                                 </span>
                               </button>
                             ))}
@@ -650,37 +632,34 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
                     </div>
                   ) : (
                     /* PREVIEW TAB */
-                    <div className="h-full flex flex-col space-y-4">
-                      <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col flex-1 bg-gray-50">
-                        {/* Simulated client top bar */}
-                        <div className="px-4 py-3 bg-white border-b border-gray-200 flex flex-col gap-1 text-xs text-gray-500">
-                          <div>
-                            <span className="font-semibold text-gray-700">To: </span>
-                            {recipients.length > 0 ? (
-                              <span>{recipients[0].name} &lt;{recipients[0].email}&gt; {recipients.length > 1 && `(+ ${recipients.length - 1} others)`}</span>
-                            ) : (
-                              <span className="text-red italic">No recipients selected yet</span>
-                            )}
-                          </div>
-                          <div>
-                            <span className="font-semibold text-gray-700">Subject: </span>
-                            <span>{subject || <span className="text-gray-400 italic">No subject line set</span>}</span>
+                    <div className="h-full flex flex-col items-center justify-center p-6 bg-gray-50 rounded-xl border border-gray-100">
+                      {/* Smartphone container mockup */}
+                      <div className="w-[280px] rounded-[32px] border-[6px] bg-slate-100 shadow-lg overflow-hidden border-slate-800 flex flex-col animate-scale-in">
+                        <div className="h-5 bg-slate-800 flex justify-between items-center px-5 text-[8px] text-white">
+                          <span>9:41</span>
+                          <div className="flex gap-1">
+                            <span>📶</span>
+                            <span>🔋</span>
                           </div>
                         </div>
-
-                        {/* Rendering pane */}
-                        <div className="flex-1 bg-white p-6 overflow-y-auto">
-                          {body.trim() ? (
-                            <div
-                              className="prose prose-sm max-w-none text-gray-800"
-                              dangerouslySetInnerHTML={{ __html: getPreviewHtml() }}
-                            />
-                          ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 italic py-20 text-sm">
-                              No body content to preview. Go back to Edit and add text.
-                            </div>
-                          )}
+                        <div className="bg-slate-200 py-1.5 text-center text-[10px] font-bold border-b border-slate-300 text-slate-700">
+                          💬 Messages ({recipients.length > 0 ? recipients[0].name : "Preview"})
                         </div>
+                        <div className="p-3 flex-1 min-h-[140px] max-h-[180px] overflow-y-auto space-y-2 bg-white">
+                          <div className="bg-[#e9e9eb] text-black text-xs p-2.5 rounded-2xl rounded-tl-none max-w-[85%] self-start leading-snug whitespace-pre-wrap">
+                            {getPreviewText() || "No text content."}
+                          </div>
+                        </div>
+                        <div className="bg-slate-100 p-2 border-t border-slate-300 flex items-center gap-1.5">
+                          <div className="flex-1 bg-white rounded-full border border-slate-300 px-3 py-1 text-[10px] text-slate-400">
+                            iMessage
+                          </div>
+                          <span className="text-slate-400 text-sm">⬆️</span>
+                        </div>
+                      </div>
+                      <div className="mt-4 text-xs text-gray-500 text-center">
+                        <p>Showing simulated SMS preview for: <strong className="text-gray-700">{recipients.length > 0 ? recipients[0].name : "No recipient"}</strong></p>
+                        <p className="mt-1">Length: {smsLength} chars ({smsParts} segment{smsParts !== 1 ? 's' : ''})</p>
                       </div>
                     </div>
                   )}
@@ -712,7 +691,7 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
                         </>
                       ) : (
                         <>
-                          <Send className="w-4 h-4" /> Send Emails
+                          <Send className="w-4 h-4" /> Send SMS
                         </>
                       )}
                     </button>
@@ -727,4 +706,4 @@ const BulkEmailModal = ({ isOpen, onClose }) => {
   );
 };
 
-export default BulkEmailModal;
+export default BulkSmsModal;

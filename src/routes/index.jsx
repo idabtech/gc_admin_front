@@ -14,7 +14,6 @@ import Appointments from "../pages/superadmin/Appointments";
 import Packages from "../pages/superadmin/Packages";
 import Payments from "../pages/superadmin/Payments";
 import EmailTemplates from "../pages/superadmin/EmailTemplates";
-import BulkMailer from "../pages/superadmin/BulkMailer";
 import Coordinators from "../pages/superadmin/Coordinators";
 import Reports from "../pages/superadmin/Reports";
 import Settings from "../pages/superadmin/Settings";
@@ -48,8 +47,7 @@ const routerData = createBrowserRouter([
             { path: "appointments", element: <Appointments /> },
             { path: "packages", element: <Packages /> },
             { path: "payments", element: <Payments /> },
-            { path: "email-templates", element: <EmailTemplates /> },
-            { path: "bulk-mailer", element: <BulkMailer /> },
+            { path: "templates", element: <EmailTemplates /> },
             { path: "coordinators", element: <Coordinators /> },
             { path: "role-management", element: <RoleManagement /> },
             { path: "team-register", element: <TeamRegister /> },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { hospitalService } from '../../service/hospital.service';
 import { C } from '../constants/data';
 import { toast } from 'sonner';
@@ -10,6 +10,108 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const autocompleteInputRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+
+  // Clear search when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchQuery('');
+      setSearchResults([]);
+      setSearching(false);
+      setShowResults(false);
+    }
+  }, [isOpen]);
+
+  // Handle click outside to close dropdown search results
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (autocompleteInputRef.current && !autocompleteInputRef.current.contains(e.target)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Fetch from OpenStreetMap Nominatim with 500ms debounce
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&extratags=1&limit=6&q=${encodeURIComponent(searchQuery)}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setSearchResults(data || []);
+          setShowResults(true);
+        }
+      } catch (error) {
+        console.error("Error searching places:", error);
+      } finally {
+        setSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const handleSelectPlace = (place) => {
+    clg
+    const addr = place.address || {};
+    const extra = place.extratags || {};
+
+    // Extract the place name
+    const name = addr.amenity || addr.hospital || addr.clinic || place.name || place.display_name.split(',')[0];
+
+    // Build street address
+    const streetParts = [
+      addr.house_number,
+      addr.road,
+      addr.suburb || addr.neighbourhood
+    ].filter(Boolean);
+    const streetAddress = streetParts.join(', ') || place.display_name;
+
+    // Get administrative components
+    const city = addr.city || addr.town || addr.village || addr.municipality || '';
+    const state = addr.state || '';
+    const zipCode = addr.postcode || '';
+
+    // Extract contact and descriptive details from extra tags
+    const email = extra.email || extra["contact:email"] || '';
+    const phone = extra.phone || extra["contact:phone"] || extra["phone:mobile"] || '';
+    const website = extra.website || extra["contact:website"] || '';
+    const description = extra.description || extra.comment || extra.note || '';
+    const emergencyContact = extra.emergency_phone || extra["emergency:phone"] || extra["contact:emergency"] || '';
+
+    setFormData(prev => ({
+      ...prev,
+      name: name || prev.name || '',
+      address: streetAddress || prev.address || '',
+      city: city || prev.city || '',
+      state: state || prev.state || '',
+      zip_code: zipCode || prev.zip_code || '',
+      email: email || prev.email || '',
+      phone: phone || prev.phone || '',
+      website: website || prev.website || '',
+      description: description || prev.description || '',
+      emergency_contact: emergencyContact || prev.emergency_contact || '',
+    }));
+
+    setSearchQuery(name);
+    setSearchResults([]);
+    setShowResults(false);
+    toast.success(`Filled details for "${name}"`);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -228,6 +330,68 @@ const HospitalModal = ({ isOpen, onClose, hospital, onActionComplete, mode }) =>
       case 'edit':
         return (
           <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {/* Search (OpenStreetMap Free Search) Auto-fill */}
+            <div className="p-4 rounded-lg border mb-4 bg-gray-50/50" style={{ borderColor: C.border }}>
+              <label className="block text-sm font-semibold mb-2 text-black flex items-center gap-1">
+                <span className="text-base">🔍</span> Search Hospital on Map
+              </label>
+              <div className="relative" ref={autocompleteInputRef}>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowResults(true);
+                  }}
+                  onFocus={() => setShowResults(true)}
+                  className="w-full px-4 py-3 rounded-lg border bg-white text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  style={{ borderColor: C.border }}
+                  placeholder="Type hospital name, location or city..."
+                />
+
+                {searching && (
+                  <div className="absolute right-3 top-3.5 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-emerald-500/80 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+
+                {showResults && searchResults.length > 0 && (
+                  <div
+                    className="absolute left-0 right-0 mt-1.5 bg-white border rounded-lg shadow-xl max-h-60 overflow-y-auto z-50 divide-y divide-gray-100"
+                    style={{ borderColor: C.border }}
+                  >
+                    {searchResults.map((place) => {
+                      const addr = place.address || {};
+                      const name = addr.amenity || addr.hospital || addr.clinic || place.name || place.display_name.split(',')[0];
+                      return (
+                        <button
+                          key={place.place_id}
+                          type="button"
+                          onClick={() => handleSelectPlace(place)}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50 flex flex-col transition cursor-pointer"
+                        >
+                          <span className="font-semibold text-sm text-black">{name}</span>
+                          <span className="text-xs text-gray-500 truncate mt-0.5">{place.display_name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {showResults && searchQuery.trim().length >= 3 && !searching && searchResults.length === 0 && (
+                  <div
+                    className="absolute left-0 right-0 mt-1.5 bg-white border rounded-lg shadow-xl p-4 text-center text-sm text-gray-500 z-50"
+                    style={{ borderColor: C.border }}
+                  >
+                    No matching hospitals found. Try a different name or location.
+                  </div>
+                )}
+              </div>
+              <p className="text-xs mt-1.5 text-gray-500">
+                Select a hospital from the list to automatically fill in its name, address, city, state, and zip code.
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: C.slateL }}>
